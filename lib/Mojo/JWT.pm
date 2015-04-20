@@ -123,6 +123,7 @@ sub token { shift->{token} }
 
 sub verify_rsa {
   my ($self, $type, $payload, $public, $signature) = @_;
+  require Crypt::OpenSSL::RSA;
   my $crypt = Crypt::OpenSSL::RSA->new_public_key($public);
   my $method = $crypt->can("use_sha${type}_hash") || die 'Unknown RSA hash algorithm';
   $crypt->$method;
