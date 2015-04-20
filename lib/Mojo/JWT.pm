@@ -8,6 +8,7 @@ use MIME::Base64 qw/encode_base64url decode_base64url/;
 has algorithm => 'HS256';
 has allow_none => 0;
 has claims => sub { {} };
+has public => '';
 has secret => '';
 
 has [qw/expires not_before/];
@@ -16,7 +17,7 @@ my $re_hs = qr/^HS(\d+)$/;
 my $re_rs = qr/^RS(\d+)$/;
 
 sub decode {
-  my ($self, $token, $secret) = @_;
+  my ($self, $token, $peek) = @_;
   $self->{token} = $token;
 
   # reset
@@ -32,21 +33,7 @@ sub decode {
   die 'Required header field "alg" not specified'
     unless my $algo = $self->algorithm($header->{alg})->algorithm;
 
-  # passed in secret can be a hash or code ref, store the result in the attribute
-  if (defined $secret) {
-    if(my $ref = ref $secret) {
-      if ($ref eq 'HASH') {
-        $secret = $secret->{$claims->{iss} || ''};
-      } elsif ($ref eq 'CODE') {
-        $secret = $self->$secret($claims);
-      } else {
-        die 'secret not understood';
-      }
-    }
-    $self->secret($secret);
-  } else {
-    $secret = $self->secret;
-  }
+  $self->$peek($claims) if $peek;
 
   # check signature
   my $payload = "$hstring.$cstring";
@@ -55,10 +42,10 @@ sub decode {
       unless $self->allow_none;
   } elsif ($algo =~ $re_rs) {
     die 'Failed RS validation'
-      unless $self->verify_rsa($1, $payload, $secret, $signature);
+      unless $self->verify_rsa($1, $payload, $signature);
   } elsif ($algo =~ $re_hs) {
     die 'failed HS validation'
-      unless $signature eq $self->sign_hmac($1, $payload, $secret);
+      unless $signature eq $self->sign_hmac($1, $payload);
   } else {
     die 'Unknown algorithm';
   }
@@ -105,16 +92,16 @@ sub encode {
 sub header { { typ => 'JWT', alg => shift->algorithm } }
 
 sub sign_hmac {
-  my ($self, $type, $payload, $secret) = @_;
+  my ($self, $type, $payload) = @_;
   require Digest::SHA;
   my $f = Digest::SHA->can("hmac_sha$type") || die 'Unknown HMAC SHA algorithm';
-  return $f->($payload, $secret);
+  return $f->($payload, $self->secret);
 }
 
 sub sign_rsa {
-  my ($self, $type, $payload, $private) = @_;
+  my ($self, $type, $payload) = @_;
   require Crypt::OpenSSL::RSA;
-  my $crypt = Crypt::OpenSSL::RSA->new_private_key($private);
+  my $crypt = Crypt::OpenSSL::RSA->new_private_key($self->secret || die 'private key (secret) not specified');
   my $method = $crypt->can("use_sha${type}_hash") || die 'Unknown RSA hash algorithm';
   $crypt->$method;
   return $crypt->sign($payload);
@@ -123,9 +110,9 @@ sub sign_rsa {
 sub token { shift->{token} }
 
 sub verify_rsa {
-  my ($self, $type, $payload, $public, $signature) = @_;
+  my ($self, $type, $payload, $signature) = @_;
   require Crypt::OpenSSL::RSA;
-  my $crypt = Crypt::OpenSSL::RSA->new_public_key($public);
+  my $crypt = Crypt::OpenSSL::RSA->new_public_key($self->public || die 'public key not specified');
   my $method = $crypt->can("use_sha${type}_hash") || die 'Unknown RSA hash algorithm';
   $crypt->$method;
   return $crypt->verify($payload, $signature);

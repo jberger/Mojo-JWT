@@ -11,14 +11,14 @@ my $payload = {foo => 'bar'};
     my $name = 'encodes and decodes JWTs';
     my $secret = 'secret';
     my $jwt = Mojo::JWT->new(claims => $payload, secret => $secret)->encode;
-    my $decoded_payload = Mojo::JWT->new->decode($jwt, $secret);
+    my $decoded_payload = Mojo::JWT->new(secret => $secret)->decode($jwt);
     is_deeply $decoded_payload, $payload, $name;
 }
 
 {
     my $name = 'encodes and decodes JWTs for HS512 signaturese';
     my $jwt = Mojo::JWT->new(claims => $payload, secret => 'S3cR3t', algorithm => 'HS512')->encode;
-    my $decoded_payload = Mojo::JWT->new->decode($jwt, 'S3cR3t');
+    my $decoded_payload = Mojo::JWT->new(secret => 'S3cR3t')->decode($jwt);
     is_deeply $decoded_payload, $payload, $name;
 }
 
@@ -26,7 +26,7 @@ my $payload = {foo => 'bar'};
     my $name = 'encodes and decodes JWTs for RSA signaturese';
     my $rsa = Crypt::OpenSSL::RSA->generate_key(512);
     #my $jwt = Mojo::JWT->new(claims => $payload, secret => $rsa->get_private_key_string, algorithm => 'RS512')->encode;
-    #my $decoded_payload = Mojo::JWT->new->decode($jwt, $rsa->get_public_key_string);
+    #my $decoded_payload = Mojo::JWT->new(public => $rsa->get_public_key_string)->decode($jwt);
     #is_deeply $decoded_payload, $payload, $name;
 }
 
@@ -35,7 +35,7 @@ my $payload = {foo => 'bar'};
     my $example_payload = {hello => 'world'};
     my $example_secret = 'secret';
     my $example_jwt = 'eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJoZWxsbyI6ICJ3b3JsZCJ9.tvagLDLoaiJKxOKqpBXSEGy7SYSifZhjntgm9ctpyj8';
-    my $decoded_payload = Mojo::JWT->new->decode($example_jwt, $example_secret);
+    my $decoded_payload = Mojo::JWT->new(secret => $example_secret)->decode($example_jwt);
     is_deeply $decoded_payload, $example_payload, $name;
 }
 
@@ -45,7 +45,7 @@ my $payload = {foo => 'bar'};
     my $bad_secret = 'bar';
     my $jwt_message = Mojo::JWT->new(claims => $payload, secret => $right_secret, algorithm => 'HS256')->encode;
     eval {
-        Mojo::JWT->new->decode($jwt_message, $bad_secret);
+        Mojo::JWT->new(secret => $bad_secret)->decode($jwt_message);
     };
     #like $@, qr/^Signature verifacation failed/, $name;
     ok $@;
@@ -57,7 +57,7 @@ my $payload = {foo => 'bar'};
     my $bad_rsa = Crypt::OpenSSL::RSA->generate_key(512);
     #my $jwt = Mojo::JWT->new->(claims => $payload, secret => $right_rsa->get_private_key_string, algorithm => 'RS256');
     #eval {
-        #Mojo::JWT->decode($jwt, $bad_rsa->get_public_key_string);
+        #Mojo::JWT->new(public => $bad_rsa->get_public_key_string)->decode($jwt);
     #};
     #like $@, qr/^Signature verifacation failed/, $name;
     #ok $@;
