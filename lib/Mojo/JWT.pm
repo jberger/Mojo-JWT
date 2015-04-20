@@ -90,9 +90,9 @@ sub encode {
   my $algo = $self->algorithm;
   if ($algo eq 'none') {
     $signature = '';
-  } elsif ($algo =~ /^RS(\d+)$/) {
+  } elsif ($algo =~ $re_rs) {
     $signature = $self->sign_rsa($1, $payload, $self->secret);
-  } elsif ($algo =~ /^HS(\d+)$/) {
+  } elsif ($algo =~ $re_hs) {
     $signature = $self->sign_hmac($1, $payload, $self->secret);
   } else {
     die 'Unknown algorithm';
