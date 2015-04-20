@@ -23,22 +23,22 @@ sub decode {
   $self->algorithm(undef);
   delete $self->{$_} for qw/claims expires not_before/;
 
-  my ($header, $claims, $signature) = split /\./, $jwt;
-  my $hdata = decode_json decode_base64url($header);
-  my $cdata = decode_json decode_base64url($claims);
+  my ($hstring, $cstring, $signature) = split /\./, $jwt;
+  my $header = decode_json decode_base64url($hstring);
+  my $claims = decode_json decode_base64url($cstring);
   $signature = decode_base64url $signature;
 
-  die 'Not a JWT' unless $hdata->{typ} eq 'JWT';
+  die 'Not a JWT' unless $header->{typ} eq 'JWT';
   die 'Required header field "alg" not specified'
-    unless my $algo = $self->algorithm($hdata->{alg})->algorithm;
+    unless my $algo = $self->algorithm($header->{alg})->algorithm;
 
   # passed in secret can be a hash or code ref, store the result in the attribute
   if (defined $secret) {
     if(my $ref = ref $secret) {
       if ($ref eq 'HASH') {
-        $secret = $secret->{$cdata->{iss} || ''};
+        $secret = $secret->{$claims->{iss} || ''};
       } elsif ($ref eq 'CODE') {
-        $secret = $self->$secret($cdata);
+        $secret = $self->$secret($claims);
       } else {
         die 'secret not understood';
       }
@@ -49,43 +49,44 @@ sub decode {
   }
 
   # check signature
+  my $payload = "$hstring.$cstring";
   if ($algo eq 'none') {
     die 'Algorithm "none" is prohibited'
       unless $self->allow_none;
   } elsif ($algo =~ $re_rs) {
     die 'Failed RS validation'
-      unless $self->verify_rsa($1, "$header.$claims", $self->secret, $signature);
+      unless $self->verify_rsa($1, $payload, $secret, $signature);
   } elsif ($algo =~ $re_hs) {
     die 'failed HS validation'
-      unless $signature eq $self->sign_hmac($1, "$header.$claims", $self->secret);
+      unless $signature eq $self->sign_hmac($1, $payload, $secret);
   } else {
     die 'Unknown algorithm';
   }
 
   # check timing
   my $now = time;
-  if (defined(my $exp = $cdata->{exp})) {
+  if (defined(my $exp = $claims->{exp})) {
     die 'JWT has expired' if $now > $exp;
     $self->expires($exp);
   }
-  if (defined(my $nbf = $cdata->{nbf})) {
+  if (defined(my $nbf = $claims->{nbf})) {
     die 'JWT is not yet valid' if $now < $nbf;
     $self->not_before($nbf);
   }
 
-  return $self->claims($cdata)->claims;
+  return $self->claims($claims)->claims;
 }
 
 sub encode {
   my $self = shift;
 
-  my $cdata = $self->claims;
-  if (defined(my $exp = $self->expires))    { $cdata->{exp} //= $exp }
-  if (defined(my $nbf = $self->not_before)) { $cdata->{nbf} //= $nbf }
+  my $claims = $self->claims;
+  if (defined(my $exp = $self->expires))    { $claims->{exp} //= $exp }
+  if (defined(my $nbf = $self->not_before)) { $claims->{nbf} //= $nbf }
 
-  my $header = encode_base64url encode_json($self->header);
-  my $claims = encode_base64url encode_json($cdata);
-  my $payload = "$header.$claims";
+  my $hstring = encode_base64url encode_json($self->header);
+  my $cstring = encode_base64url encode_json($claims);
+  my $payload = "$hstring.$cstring";
   my $signature;
   my $algo = $self->algorithm;
   if ($algo eq 'none') {
