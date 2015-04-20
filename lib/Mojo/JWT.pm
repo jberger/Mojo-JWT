@@ -36,7 +36,7 @@ sub decode {
   if (defined $secret) {
     if(my $ref = ref $secret) {
       if ($ref eq 'HASH') {
-        $secret = $secret->{$iss || die 'Issuer not specified'};
+        $secret = $secret->{$cdata->{iss} || ''};
       } elsif ($ref eq 'CODE') {
         $secret = $self->$secret($cdata);
       } else {
