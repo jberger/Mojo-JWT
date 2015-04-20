@@ -8,8 +8,7 @@ use MIME::Base64 qw/encode_base64url decode_base64url/;
 has algorithm => 'HS256';
 has allow_none => 0;
 has claims => sub { {} };
-has public => '';
-has secret => '';
+has [qw/public secret/] => '';
 
 has [qw/expires not_before/];
 
