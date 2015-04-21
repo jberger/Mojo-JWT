@@ -5,6 +5,8 @@ use Test::More;
 use Mojo::JWT;
 use Crypt::OpenSSL::RSA;
 
+my $has_rsa = eval { require Crypt::OpenSSL::RSA; 1 };
+
 my $payload = {foo => 'bar'};
 
 {
@@ -22,7 +24,8 @@ my $payload = {foo => 'bar'};
     is_deeply $decoded_payload, $payload, $name;
 }
 
-{
+SKIP: {
+    skip 'requires Crypt::OpenSSL::RSA', 1 unless $has_rsa;
     my $name = 'encodes and decodes JWTs for RSA signaturese';
     my $rsa = Crypt::OpenSSL::RSA->generate_key(1024);
     my $jwt = Mojo::JWT->new(claims => $payload, secret => $rsa->get_private_key_string, algorithm => 'RS512')->encode;
@@ -50,7 +53,8 @@ my $payload = {foo => 'bar'};
     like $@, qr/^Failed HS validation/, $name;
 }
 
-{
+SKIP: {
+    skip 'requires Crypt::OpenSSL::RSA', 1 unless $has_rsa;
     my $name = 'raises exception with wrong rsa key';
     my $right_rsa = Crypt::OpenSSL::RSA->generate_key(1024);
     my $bad_rsa = Crypt::OpenSSL::RSA->generate_key(1024);
