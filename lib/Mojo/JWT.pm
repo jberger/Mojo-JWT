@@ -93,17 +93,17 @@ sub encode {
 sub header { { typ => 'JWT', alg => shift->algorithm } }
 
 sub sign_hmac {
-  my ($self, $type, $payload) = @_;
+  my ($self, $size, $payload) = @_;
   require Digest::SHA;
-  my $f = Digest::SHA->can("hmac_sha$type") || croak 'Unsupported HS signing algorithm';
+  my $f = Digest::SHA->can("hmac_sha$size") || croak 'Unsupported HS signing algorithm';
   return $f->($payload, $self->secret);
 }
 
 sub sign_rsa {
-  my ($self, $type, $payload) = @_;
+  my ($self, $size, $payload) = @_;
   require Crypt::OpenSSL::RSA;
   my $crypt = Crypt::OpenSSL::RSA->new_private_key($self->secret || croak 'private key (secret) not specified');
-  my $method = $crypt->can("use_sha${type}_hash") || croak 'Unsupported RS signing algorithm';
+  my $method = $crypt->can("use_sha${size}_hash") || croak 'Unsupported RS signing algorithm';
   $crypt->$method;
   return $crypt->sign($payload);
 }
@@ -111,10 +111,10 @@ sub sign_rsa {
 sub token { shift->{token} }
 
 sub verify_rsa {
-  my ($self, $type, $payload, $signature) = @_;
+  my ($self, $size, $payload, $signature) = @_;
   require Crypt::OpenSSL::RSA;
   my $crypt = Crypt::OpenSSL::RSA->new_public_key($self->public || croak 'public key not specified');
-  my $method = $crypt->can("use_sha${type}_hash") || croak 'Unsupported RS verification algorithm';
+  my $method = $crypt->can("use_sha${size}_hash") || croak 'Unsupported RS verification algorithm';
   $crypt->$method;
   return $crypt->verify($payload, $signature);
 }
@@ -245,18 +245,18 @@ Returns a hash reference representing the JWT header, constructed from instance 
 
 =head2 sign_hmac
 
-  my $signature = $jwt->sign_hmac($type, $payload);
+  my $signature = $jwt->sign_hmac($size, $payload);
 
-Returns the HMAC SHA signature for the given size (type) and payload.
+Returns the HMAC SHA signature for the given size and payload.
 The L</secret> attribute is used as the symmetric key.
 The result is not yet base64 encoded.
 This method is provided mostly for the purposes of subclassing.
 
 =head2 sign_rsa
 
-  my $signature = $jwt->sign_rsa($type, $payload);
+  my $signature = $jwt->sign_rsa($size, $payload);
 
-Returns the RSA signature for the given size (type) and payload.
+Returns the RSA signature for the given size and payload.
 The L</secret> attribute is used as the private key.
 The result is not yet base64 encoded.
 This method is provided mostly for the purposes of subclassing.
@@ -268,9 +268,9 @@ Note that any attribute modifications are not taken into account until L</encode
 
 =head2 verify_rsa
 
-  my $bool = $jwt->verify_rsa($type, $payload, $signature);
+  my $bool = $jwt->verify_rsa($size, $payload, $signature);
 
-Returns true if the given RSA type algorithm validates the given payload and signature.
+Returns true if the given RSA size algorithm validates the given payload and signature.
 The L</public> attribute is used as the public key.
 This method is provided mostly for the purposes of subclassing.
 
