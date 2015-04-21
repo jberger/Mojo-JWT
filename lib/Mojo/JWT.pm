@@ -2,6 +2,9 @@ package Mojo::JWT;
 
 use Mojo::Base -base;
 
+our $VERSION = '0.01';
+$VERSION = eval $VERSION;
+
 use Mojo::JSON qw/encode_json decode_json/;
 use MIME::Base64 qw/encode_base64url decode_base64url/;
 
