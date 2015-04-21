@@ -76,23 +76,23 @@ Parsing occurs as follows
 
 =over
 
-=item * 
+=item *
 
 The L</algorithm> is extracted from the header and set, if not present or permissible an exception is thrown
 
-=item * 
+=item *
 
 If a C<$peek> callback is provided, it is called with the instance and claims as arguments
 
-=item * 
+=item *
 
 The signature is verified or an exception is thrown
 
-=item * 
+=item *
 
 The timing claims (L</expires> and L</not_before>), if present, are evaluated, failures result in exceptions. On success the values are set in the relevant attributes
 
-=item * 
+=item *
 
 The L</claims> attribute is set and the claims are returned.
 
@@ -122,18 +122,18 @@ Returns a hash reference representing the JWT header, constructed from instance 
 
 =head2 sign_hmac
 
-  my $signature = $jwt->sign_hmac($type, $payload);
+  my $signature = $jwt->sign_hmac($size, $payload);
 
-Returns the HMAC SHA signature for the given size (type) and payload.
+Returns the HMAC SHA signature for the given size and payload.
 The L</secret> attribute is used as the symmetric key.
 The result is not yet base64 encoded.
 This method is provided mostly for the purposes of subclassing.
 
 =head2 sign_rsa
 
-  my $signature = $jwt->sign_rsa($type, $payload);
+  my $signature = $jwt->sign_rsa($size, $payload);
 
-Returns the RSA signature for the given size (type) and payload.
+Returns the RSA signature for the given size and payload.
 The L</secret> attribute is used as the private key.
 The result is not yet base64 encoded.
 This method is provided mostly for the purposes of subclassing.
@@ -145,9 +145,9 @@ Note that any attribute modifications are not taken into account until L</encode
 
 =head2 verify_rsa
 
-  my $bool = $jwt->verify_rsa($type, $payload, $signature);
+  my $bool = $jwt->verify_rsa($size, $payload, $signature);
 
-Returns true if the given RSA type algorithm validates the given payload and signature.
+Returns true if the given RSA size algorithm validates the given payload and signature.
 The L</public> attribute is used as the public key.
 This method is provided mostly for the purposes of subclassing.
 
@@ -165,7 +165,11 @@ This method is provided mostly for the purposes of subclassing.
 
 =head1 SOURCE REPOSITORY
 
-L<http://github.com/jberger/Mojo-JWT> 
+L<http://github.com/jberger/Mojo-JWT>
+
+=head1 DEVELOPMENT SPONSORED BY
+
+Restore Health Corporation, L<http://restorhc.com>
 
 =head1 AUTHOR
 

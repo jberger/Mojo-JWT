@@ -290,6 +290,10 @@ This method is provided mostly for the purposes of subclassing.
 
 L<http://github.com/jberger/Mojo-JWT>
 
+=head1 DEVELOPMENT SPONSORED BY
+
+Restore Health Corporation, L<http://restorhc.com>
+
 =head1 AUTHOR
 
 Joel Berger, E<lt>joel.a.berger@gmail.comE<gt>
