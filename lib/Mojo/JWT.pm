@@ -29,7 +29,7 @@ sub decode {
   my $claims = decode_json decode_base64url($cstring);
   $signature = decode_base64url $signature;
 
-  croak 'Not a JWT' unless $header->{typ} eq 'JWT';
+  #croak 'Not a JWT' unless $header->{typ} eq 'JWT';
   croak 'Required header field "alg" not specified'
     unless my $algo = $self->algorithm($header->{alg})->algorithm;
 
