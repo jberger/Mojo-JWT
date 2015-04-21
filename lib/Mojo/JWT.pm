@@ -78,9 +78,9 @@ sub encode {
   if ($algo eq 'none') {
     $signature = '';
   } elsif ($algo =~ $re_rs) {
-    $signature = $self->sign_rsa($1, $payload, $self->secret);
+    $signature = $self->sign_rsa($1, $payload);
   } elsif ($algo =~ $re_hs) {
-    $signature = $self->sign_hmac($1, $payload, $self->secret);
+    $signature = $self->sign_hmac($1, $payload);
   } else {
     die 'Unknown algorithm';
   }
