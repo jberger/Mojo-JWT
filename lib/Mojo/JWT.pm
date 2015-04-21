@@ -5,6 +5,8 @@ use Mojo::Base -base;
 use Mojo::JSON qw/encode_json decode_json/;
 use MIME::Base64 qw/encode_base64url decode_base64url/;
 
+use Carp;
+
 has algorithm => 'HS256';
 has allow_none => 0;
 has claims => sub { {} };
@@ -27,8 +29,8 @@ sub decode {
   my $claims = decode_json decode_base64url($cstring);
   $signature = decode_base64url $signature;
 
-  die 'Not a JWT' unless $header->{typ} eq 'JWT';
-  die 'Required header field "alg" not specified'
+  croak 'Not a JWT' unless $header->{typ} eq 'JWT';
+  croak 'Required header field "alg" not specified'
     unless my $algo = $self->algorithm($header->{alg})->algorithm;
 
   $self->$peek($claims) if $peek;
@@ -36,26 +38,26 @@ sub decode {
   # check signature
   my $payload = "$hstring.$cstring";
   if ($algo eq 'none') {
-    die 'Algorithm "none" is prohibited'
+    croak 'Algorithm "none" is prohibited'
       unless $self->allow_none;
   } elsif ($algo =~ $re_rs) {
-    die 'Failed RS validation'
+    croak 'Failed RS validation'
       unless $self->verify_rsa($1, $payload, $signature);
   } elsif ($algo =~ $re_hs) {
-    die 'failed HS validation'
+    croak 'Failed HS validation'
       unless $signature eq $self->sign_hmac($1, $payload);
   } else {
-    die 'Unknown algorithm';
+    croak 'Unknown algorithm';
   }
 
   # check timing
   my $now = time;
   if (defined(my $exp = $claims->{exp})) {
-    die 'JWT has expired' if $now > $exp;
+    croak 'JWT has expired' if $now > $exp;
     $self->expires($exp);
   }
   if (defined(my $nbf = $claims->{nbf})) {
-    die 'JWT is not yet valid' if $now < $nbf;
+    croak 'JWT is not yet valid' if $now < $nbf;
     $self->not_before($nbf);
   }
 
@@ -82,7 +84,7 @@ sub encode {
   } elsif ($algo =~ $re_hs) {
     $signature = $self->sign_hmac($1, $payload);
   } else {
-    die 'Unknown algorithm';
+    croak 'Unknown algorithm';
   }
 
   return $self->{token} = "$payload." . encode_base64url $signature;
@@ -93,15 +95,15 @@ sub header { { typ => 'JWT', alg => shift->algorithm } }
 sub sign_hmac {
   my ($self, $type, $payload) = @_;
   require Digest::SHA;
-  my $f = Digest::SHA->can("hmac_sha$type") || die 'Unknown HMAC SHA algorithm';
+  my $f = Digest::SHA->can("hmac_sha$type") || croak 'Unknown HMAC SHA algorithm';
   return $f->($payload, $self->secret);
 }
 
 sub sign_rsa {
   my ($self, $type, $payload) = @_;
   require Crypt::OpenSSL::RSA;
-  my $crypt = Crypt::OpenSSL::RSA->new_private_key($self->secret || die 'private key (secret) not specified');
-  my $method = $crypt->can("use_sha${type}_hash") || die 'Unknown RSA hash algorithm';
+  my $crypt = Crypt::OpenSSL::RSA->new_private_key($self->secret || croak 'private key (secret) not specified');
+  my $method = $crypt->can("use_sha${type}_hash") || croak 'Unknown RSA hash algorithm';
   $crypt->$method;
   return $crypt->sign($payload);
 }
@@ -111,8 +113,8 @@ sub token { shift->{token} }
 sub verify_rsa {
   my ($self, $type, $payload, $signature) = @_;
   require Crypt::OpenSSL::RSA;
-  my $crypt = Crypt::OpenSSL::RSA->new_public_key($self->public || die 'public key not specified');
-  my $method = $crypt->can("use_sha${type}_hash") || die 'Unknown RSA hash algorithm';
+  my $crypt = Crypt::OpenSSL::RSA->new_public_key($self->public || croak 'public key not specified');
+  my $method = $crypt->can("use_sha${type}_hash") || croak 'Unknown RSA hash algorithm';
   $crypt->$method;
   return $crypt->verify($payload, $signature);
 }
@@ -197,23 +199,23 @@ Parsing occurs as follows
 
 =over
 
-=item * 
+=item *
 
 The L</algorithm> is extracted from the header and set, if not present or permissible an exception is thrown
 
-=item * 
+=item *
 
 If a C<$peek> callback is provided, it is called with the instance and claims as arguments
 
-=item * 
+=item *
 
 The signature is verified or an exception is thrown
 
-=item * 
+=item *
 
 The timing claims (L</expires> and L</not_before>), if present, are evaluated, failures result in exceptions. On success the values are set in the relevant attributes
 
-=item * 
+=item *
 
 The L</claims> attribute is set and the claims are returned.
 
@@ -286,7 +288,7 @@ This method is provided mostly for the purposes of subclassing.
 
 =head1 SOURCE REPOSITORY
 
-L<http://github.com/jberger/Mojo-JWT> 
+L<http://github.com/jberger/Mojo-JWT>
 
 =head1 AUTHOR
 
