@@ -76,15 +76,25 @@ Parsing occurs as follows
 
 =over
 
-=item The L</algorithm> is extracted from the header and set, if not present or permissible an exception is thrown
+=item * 
 
-=item If a C<$peek> callback is provided, it is called with the instance and claims as arguments
+The L</algorithm> is extracted from the header and set, if not present or permissible an exception is thrown
 
-=item The signature is verified or an exception is thrown
+=item * 
 
-=item The timing claims (L</expires> and L</not_before>), if present, are evaluated, failures result in exceptions. On success the values are set in the relevant attributes
+If a C<$peek> callback is provided, it is called with the instance and claims as arguments
 
-=item The L</claims> attribute is set and the claims are returned.
+=item * 
+
+The signature is verified or an exception is thrown
+
+=item * 
+
+The timing claims (L</expires> and L</not_before>), if present, are evaluated, failures result in exceptions. On success the values are set in the relevant attributes
+
+=item * 
+
+The L</claims> attribute is set and the claims are returned.
 
 =back
 
