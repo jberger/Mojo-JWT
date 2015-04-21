@@ -47,8 +47,7 @@ my $payload = {foo => 'bar'};
     eval {
         Mojo::JWT->new(secret => $bad_secret)->decode($jwt_message);
     };
-    #like $@, qr/^Signature verifacation failed/, $name;
-    ok $@;
+    like $@, qr/^Failed HS validation/, $name;
 }
 
 {
@@ -59,8 +58,7 @@ my $payload = {foo => 'bar'};
     eval {
         Mojo::JWT->new(public => $bad_rsa->get_public_key_string)->decode($jwt);
     };
-    #like $@, qr/^Signature verifacation failed/, $name;
-    ok $@;
+    like $@, qr/^Failed RS validation/, $name;
 }
 
 {
@@ -73,10 +71,9 @@ my $payload = {foo => 'bar'};
 {
     my $name = 'raises exception on unsupported crypto algorithm';
     eval {
-        Mojo::JWT->new(claims => $payload, secret => 'secret', algorithm => 'HS1024')->encode;
+        Mojo::JWT->new(claims => $payload, secret => 'secret', algorithm => 'HS131')->encode;
     };
-    #like $@, qr/^Unsupported signing method/, $name;
-    ok $@;
+    like $@, qr/^Unsupported HS signing algorithm/, $name;
 }
 
 done_testing;

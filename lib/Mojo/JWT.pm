@@ -47,7 +47,7 @@ sub decode {
     croak 'Failed HS validation'
       unless $signature eq $self->sign_hmac($1, $payload);
   } else {
-    croak 'Unknown algorithm';
+    croak 'Unsupported signing algorithm';
   }
 
   # check timing
@@ -95,7 +95,7 @@ sub header { { typ => 'JWT', alg => shift->algorithm } }
 sub sign_hmac {
   my ($self, $type, $payload) = @_;
   require Digest::SHA;
-  my $f = Digest::SHA->can("hmac_sha$type") || croak 'Unknown HMAC SHA algorithm';
+  my $f = Digest::SHA->can("hmac_sha$type") || croak 'Unsupported HS signing algorithm';
   return $f->($payload, $self->secret);
 }
 
@@ -103,7 +103,7 @@ sub sign_rsa {
   my ($self, $type, $payload) = @_;
   require Crypt::OpenSSL::RSA;
   my $crypt = Crypt::OpenSSL::RSA->new_private_key($self->secret || croak 'private key (secret) not specified');
-  my $method = $crypt->can("use_sha${type}_hash") || croak 'Unknown RSA hash algorithm';
+  my $method = $crypt->can("use_sha${type}_hash") || croak 'Unsupported RS signing algorithm';
   $crypt->$method;
   return $crypt->sign($payload);
 }
@@ -114,7 +114,7 @@ sub verify_rsa {
   my ($self, $type, $payload, $signature) = @_;
   require Crypt::OpenSSL::RSA;
   my $crypt = Crypt::OpenSSL::RSA->new_public_key($self->public || croak 'public key not specified');
-  my $method = $crypt->can("use_sha${type}_hash") || croak 'Unknown RSA hash algorithm';
+  my $method = $crypt->can("use_sha${type}_hash") || croak 'Unsupported RS verification algorithm';
   $crypt->$method;
   return $crypt->verify($payload, $signature);
 }
