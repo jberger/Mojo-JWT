@@ -24,10 +24,10 @@ my $payload = {foo => 'bar'};
 
 {
     my $name = 'encodes and decodes JWTs for RSA signaturese';
-    my $rsa = Crypt::OpenSSL::RSA->generate_key(512);
-    #my $jwt = Mojo::JWT->new(claims => $payload, secret => $rsa->get_private_key_string, algorithm => 'RS512')->encode;
-    #my $decoded_payload = Mojo::JWT->new(public => $rsa->get_public_key_string)->decode($jwt);
-    #is_deeply $decoded_payload, $payload, $name;
+    my $rsa = Crypt::OpenSSL::RSA->generate_key(1024);
+    my $jwt = Mojo::JWT->new(claims => $payload, secret => $rsa->get_private_key_string, algorithm => 'RS512')->encode;
+    my $decoded_payload = Mojo::JWT->new(public => $rsa->get_public_key_string)->decode($jwt);
+    is_deeply $decoded_payload, $payload, $name;
 }
 
 {
@@ -53,14 +53,14 @@ my $payload = {foo => 'bar'};
 
 {
     my $name = 'raises exception with wrong rsa key';
-    my $right_rsa = Crypt::OpenSSL::RSA->generate_key(512);
-    my $bad_rsa = Crypt::OpenSSL::RSA->generate_key(512);
-    #my $jwt = Mojo::JWT->new->(claims => $payload, secret => $right_rsa->get_private_key_string, algorithm => 'RS256');
-    #eval {
-        #Mojo::JWT->new(public => $bad_rsa->get_public_key_string)->decode($jwt);
-    #};
+    my $right_rsa = Crypt::OpenSSL::RSA->generate_key(1024);
+    my $bad_rsa = Crypt::OpenSSL::RSA->generate_key(1024);
+    my $jwt = Mojo::JWT->new(claims => $payload, secret => $right_rsa->get_private_key_string, algorithm => 'RS256')->encode;
+    eval {
+        Mojo::JWT->new(public => $bad_rsa->get_public_key_string)->decode($jwt);
+    };
     #like $@, qr/^Signature verifacation failed/, $name;
-    #ok $@;
+    ok $@;
 }
 
 {
