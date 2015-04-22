@@ -3,7 +3,6 @@
 use Test::More;
 
 use Mojo::JWT;
-use Crypt::OpenSSL::RSA;
 
 my $has_rsa = eval { require Crypt::OpenSSL::RSA; 1 };
 
