@@ -133,7 +133,7 @@ Mojo::JWT - JSON Web Token the Mojo way
   my $jwt = Mojo::JWT->new(claims => {...}, secret => 's3cr3t')->encode;
   my $claims = Mojo::JWT->new(secret => 's3cr3t')->decode($jwt);
 
-=head1 DESCRIPTIION
+=head1 DESCRIPTION
 
 JSON Web Token is described in L<https://tools.ietf.org/html/draft-ietf-oauth-json-web-token-32>.
 L<Mojo::JWT> implements that standard with an API that should feel familiar to L<Mojolicious> users (though of course it is useful elsewhere).
