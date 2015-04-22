@@ -1,5 +1,8 @@
 Revision history for Perl module Mojo::JWT
 
+0.02 2015-04-21
+  - Fix failing test when Crypt::OpenSSL::RSA is not installed
+
 0.01 2015-04-21
   - Initial release
 
