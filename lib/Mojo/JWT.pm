@@ -11,7 +11,7 @@ use MIME::Base64 qw/encode_base64url decode_base64url/;
 use Carp;
 
 has algorithm => 'HS256';
-has allow_none => 0;
+has [qw/allow_none set_iat/] => 0;
 has claims => sub { {} };
 has [qw/expires not_before/];
 has [qw/public secret/] => '';
@@ -54,7 +54,7 @@ sub decode {
   }
 
   # check timing
-  my $now = time;
+  my $now = $self->now;
   if (defined(my $exp = $claims->{exp})) {
     croak 'JWT has expired' if $now > $exp;
     $self->expires($exp);
@@ -72,6 +72,7 @@ sub encode {
   delete $self->{token};
 
   my $claims = $self->claims;
+  if ($self->set_iat) { $claims->{iat} = $self->now }
   if (defined(my $exp = $self->expires))    { $claims->{exp} = $exp }
   if (defined(my $nbf = $self->not_before)) { $claims->{nbf} = $nbf }
 
@@ -94,6 +95,8 @@ sub encode {
 }
 
 sub header { { typ => 'JWT', alg => shift->algorithm } }
+
+sub now { time }
 
 sub sign_hmac {
   my ($self, $size, $payload) = @_;
@@ -182,6 +185,10 @@ The public key to be used in decoding an asymmetrically signed JWT (eg. RSA).
 
 The symmetric secret (eg. HMAC) or else the private key used in encoding an asymmetrically signed JWT (eg. RSA).
 
+=head2 set_iat
+
+If true (false by default), then the C<iat> claim will be set to the value of L</now> during L</encode>.
+
 =head1 METHODS
 
 L<Mojo::JWT> inherits all of the methods from L<Mojo::Base> and implements the following new ones.
@@ -245,6 +252,12 @@ However any encoded string will survive an encode/decode roundtrip.
   my $header = $jwt->header;
 
 Returns a hash reference representing the JWT header, constructed from instance attributes (see L</algorithm>).
+
+=head2 now
+
+  my $time = $jwt->now;
+
+Returns the current time, currently implemented as the core C<time> function.
 
 =head2 sign_hmac
 
