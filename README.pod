@@ -56,6 +56,10 @@ The public key to be used in decoding an asymmetrically signed JWT (eg. RSA).
 
 The symmetric secret (eg. HMAC) or else the private key used in encoding an asymmetrically signed JWT (eg. RSA).
 
+=head2 set_iat
+
+If true (false by default), then the C<iat> claim will be set to the value of L</now> during L</encode>.
+
 =head1 METHODS
 
 L<Mojo::JWT> inherits all of the methods from L<Mojo::Base> and implements the following new ones.
@@ -119,6 +123,12 @@ However any encoded string will survive an encode/decode roundtrip.
   my $header = $jwt->header;
 
 Returns a hash reference representing the JWT header, constructed from instance attributes (see L</algorithm>).
+
+=head2 now
+
+  my $time = $jwt->now;
+
+Returns the current time, currently implemented as the core C<time> function.
 
 =head2 sign_hmac
 
