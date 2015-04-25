@@ -13,7 +13,7 @@ my $build = Module::Build->new(
   requires => {
     'Mojolicious'  => '5.00',
     'Digest::SHA'  => 0,
-    'MIME::Base64' => 0,
+    'MIME::Base64' => '3.11',
   },
   recommends => {
     'Crypt::OpenSSL::RSA' => 0,
