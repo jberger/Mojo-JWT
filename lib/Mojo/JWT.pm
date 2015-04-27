@@ -2,7 +2,7 @@ package Mojo::JWT;
 
 use Mojo::Base -base;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 $VERSION = eval $VERSION;
 
 use Mojo::JSON qw/encode_json decode_json/;
@@ -308,7 +308,7 @@ L<http://github.com/jberger/Mojo-JWT>
 
 =head1 DEVELOPMENT SPONSORED BY
 
-Restore Health Corporation, L<http://restorhc.com>
+Restore Health Corporation, L<http://restorehc.com>
 
 =head1 AUTHOR
 

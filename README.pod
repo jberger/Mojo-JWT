@@ -179,7 +179,7 @@ L<http://github.com/jberger/Mojo-JWT>
 
 =head1 DEVELOPMENT SPONSORED BY
 
-Restore Health Corporation, L<http://restorhc.com>
+Restore Health Corporation, L<http://restorehc.com>
 
 =head1 AUTHOR
 
