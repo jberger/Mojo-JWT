@@ -138,7 +138,7 @@ Mojo::JWT - JSON Web Token the Mojo way
 
 =head1 DESCRIPTION
 
-JSON Web Token is described in L<https://tools.ietf.org/html/draft-ietf-oauth-json-web-token-32>.
+JSON Web Token is described in L<https://tools.ietf.org/html/rfc7519>.
 L<Mojo::JWT> implements that standard with an API that should feel familiar to L<Mojolicious> users (though of course it is useful elsewhere).
 Indeed, JWT is much like L<Mojolicious::Sessions> except that the result is a url-safe text string rather than a cookie.
 

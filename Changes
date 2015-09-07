@@ -1,5 +1,8 @@
 Revision history for Perl module Mojo::JWT
 
+0.05
+  - Changed JWT link from draft to RFC
+
 0.04 2015-04-27
   - Fix link to sponsor
 
