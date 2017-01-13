@@ -1,6 +1,7 @@
 Revision history for Perl module Mojo::JWT
 
 0.05
+  - Port to Module::Build::Tiny, (via App::ModuleBuildTiny)
   - Changed JWT link from draft to RFC
 
 0.04 2015-04-27
