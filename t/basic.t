@@ -71,6 +71,25 @@ SKIP: {
     like $@, qr/^Failed HS validation/, $name;
 }
 
+{
+    my $name = 'raises exception when missing "typ" header';
+    my $encoded = 'eyJhbGciOiJIUzI1NiJ9.eyJmb28iOiJiYXIifQ.oB-hPP-iM8gpHyhhTnltlh9Ph8WdapCcPRZ2zJ_AwBs';
+    eval {
+        Mojo::JWT->new(secret => 'secret')->decode($encoded);
+    };
+    like $@, qr/^Missing JWT "typ" header/, $name;
+}
+
+{
+    my $name = 'raises exception on invalid "typ" header';
+    my $encoded = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXUyJ9.eyJmb28iOiJiYXIifQ.1prihUTbZkFPTMgE6E3vftj31EmgJr2NfX8V6YwS35Q';
+    eval {
+        Mojo::JWT->new(secret => 'secret')->decode($encoded);
+    };
+    like $@, qr/^Not a JWT/, $name;
+}
+
+
 SKIP: {
     skip 'requires Crypt::OpenSSL::RSA', 1 unless $has_rsa;
     my $name = 'raises exception with wrong rsa key';
@@ -99,6 +118,30 @@ SKIP: {
         Mojo::JWT->new(claims => $payload, secret => 'secret', algorithm => 'HS131')->encode;
     };
     like $@, qr/^Unsupported HS signing algorithm/, $name;
+}
+
+{
+    my $name = 'encodes and decodes JWTs with custom headers';
+    my $secret = 'secret';
+    my $payload = { foo => 'bar' };
+    my $header  = { x5c => [ 'some-value' ] };
+    my $encoded_jwt = Mojo::JWT->new(claims => $payload,secret => $secret, header => $header)->encode;
+    my $jwt = Mojo::JWT->new(secret => $secret);
+    $jwt->decode($encoded_jwt);
+    my $expected_header = { x5c => [ 'some-value' ] };
+    is_deeply $jwt->header, $expected_header, $name;
+}
+
+{
+    my $name = 'should not be able to override "typ" header';
+    my $secret = 'secret';
+    my $payload = { foo => 'bar' };
+    my $header  = { typ => 'JWS', x5c =>  [ 'some-value'] };
+    my $encoded_jwt = Mojo::JWT->new(claims => $payload,secret => $secret, header => $header)->encode;
+    my $jwt = Mojo::JWT->new(secret => $secret);
+    $jwt->decode($encoded_jwt);
+    my $expected_header = { x5c => [ 'some-value' ] };
+    is_deeply $jwt->header, $expected_header, $name;
 }
 
 done_testing;
