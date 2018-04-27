@@ -26,7 +26,7 @@ sub decode {
 
   # reset
   $self->algorithm(undef);
-  delete $self->{$_} for qw/claims expires not_before/;
+  delete $self->{$_} for qw/claims expires not_before header/;
 
   my ($hstring, $cstring, $signature) = split /\./, $token;
   my $header = decode_json decode_base64url($hstring);
