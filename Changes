@@ -1,6 +1,9 @@
 Revision history for Perl module Mojo::JWT
 
-0.05
+0.06 2018-04-28
+  - Allow users to modify headers (mishanti1)
+
+0.05 2017-01-12
   - Port to Module::Build::Tiny, (via App::ModuleBuildTiny)
   - Changed JWT link from draft to RFC
 
