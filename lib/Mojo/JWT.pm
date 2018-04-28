@@ -10,6 +10,7 @@ use MIME::Base64 qw/encode_base64url decode_base64url/;
 
 use Carp;
 
+has header => sub { {} };
 has algorithm => 'HS256';
 has [qw/allow_none set_iat/] => 0;
 has claims => sub { {} };
@@ -25,16 +26,18 @@ sub decode {
 
   # reset
   $self->algorithm(undef);
-  delete $self->{$_} for qw/claims expires not_before/;
+  delete $self->{$_} for qw/claims expires not_before header/;
 
   my ($hstring, $cstring, $signature) = split /\./, $token;
   my $header = decode_json decode_base64url($hstring);
   my $claims = decode_json decode_base64url($cstring);
   $signature = decode_base64url $signature;
 
-  #croak 'Not a JWT' unless $header->{typ} eq 'JWT';
+  croak 'Missing JWT "typ" header' unless defined $header->{typ};
+  croak 'Not a JWT' unless delete $header->{typ} eq 'JWT';
   croak 'Required header field "alg" not specified'
-    unless my $algo = $self->algorithm($header->{alg})->algorithm;
+    unless my $algo = $self->algorithm(delete $header->{alg})->algorithm;
+  $self->header($header);
 
   $self->$peek($claims) if $peek;
 
@@ -76,7 +79,8 @@ sub encode {
   if (defined(my $exp = $self->expires))    { $claims->{exp} = $exp }
   if (defined(my $nbf = $self->not_before)) { $claims->{nbf} = $nbf }
 
-  my $hstring = encode_base64url encode_json($self->header);
+  my $header  = { %{ $self->header }, typ => 'JWT', alg => $self->algorithm };
+  my $hstring = encode_base64url encode_json($header);
   my $cstring = encode_base64url encode_json($claims);
   my $payload = "$hstring.$cstring";
   my $signature;
@@ -93,8 +97,6 @@ sub encode {
 
   return $self->{token} = "$payload." . encode_base64url $signature;
 }
-
-sub header { { typ => 'JWT', alg => shift->algorithm } }
 
 sub now { time }
 
@@ -171,6 +173,10 @@ This must be a hash reference, array references are not allowed as the top-level
 
 The epoch time value after which the JWT value should not be considered valid.
 This value (if set and not undefined) will be used as the C<exp> key in the claims or was extracted from the claims during the most recent decoding.
+
+=head2 header
+
+You may set your own headers when encoding the JWT bypassing a hash reference to the L</header> attribute. Please note that there are two default headers set. B<alg> is set to the value of L</algorithm> or 'HS256' and B<typ> is set to 'JWT'. These cannot be overridden.
 
 =head2 not_before
 
