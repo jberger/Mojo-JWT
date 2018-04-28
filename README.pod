@@ -43,6 +43,10 @@ This must be a hash reference, array references are not allowed as the top-level
 The epoch time value after which the JWT value should not be considered valid.
 This value (if set and not undefined) will be used as the C<exp> key in the claims or was extracted from the claims during the most recent decoding.
 
+=head2 header
+
+You may set your own headers when encoding the JWT bypassing a hash reference to the L</header> attribute. Please note that there are two default headers set. B<alg> is set to the value of L</algorithm> or 'HS256' and B<typ> is set to 'JWT'. These cannot be overridden.
+
 =head2 not_before
 
 The epoch time value before which the JWT value should not be considered valid.
@@ -185,9 +189,13 @@ Restore Health Corporation, L<http://restorehc.com>
 
 Joel Berger, E<lt>joel.a.berger@gmail.comE<gt>
 
+=head1 CONTRIBUTORS
+
+Christopher Raa (mishanti1)
+
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2015 by Joel Berger
+Copyright (C) 2015 by L</AUTHOR> and L</CONTRIBTORS>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
