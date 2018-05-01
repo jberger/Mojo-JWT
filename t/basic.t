@@ -71,25 +71,6 @@ SKIP: {
     like $@, qr/^Failed HS validation/, $name;
 }
 
-{
-    my $name = 'raises exception when missing "typ" header';
-    my $encoded = 'eyJhbGciOiJIUzI1NiJ9.eyJmb28iOiJiYXIifQ.oB-hPP-iM8gpHyhhTnltlh9Ph8WdapCcPRZ2zJ_AwBs';
-    eval {
-        Mojo::JWT->new(secret => 'secret')->decode($encoded);
-    };
-    like $@, qr/^Missing JWT "typ" header/, $name;
-}
-
-{
-    my $name = 'raises exception on invalid "typ" header';
-    my $encoded = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXUyJ9.eyJmb28iOiJiYXIifQ.1prihUTbZkFPTMgE6E3vftj31EmgJr2NfX8V6YwS35Q';
-    eval {
-        Mojo::JWT->new(secret => 'secret')->decode($encoded);
-    };
-    like $@, qr/^Not a JWT/, $name;
-}
-
-
 SKIP: {
     skip 'requires Crypt::OpenSSL::RSA', 1 unless $has_rsa;
     my $name = 'raises exception with wrong rsa key';

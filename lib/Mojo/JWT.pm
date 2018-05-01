@@ -2,7 +2,7 @@ package Mojo::JWT;
 
 use Mojo::Base -base;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 $VERSION = eval $VERSION;
 
 use Mojo::JSON qw/encode_json decode_json/;
@@ -33,8 +33,9 @@ sub decode {
   my $claims = decode_json decode_base64url($cstring);
   $signature = decode_base64url $signature;
 
-  croak 'Missing JWT "typ" header' unless defined $header->{typ};
-  croak 'Not a JWT' unless delete $header->{typ} eq 'JWT';
+  # typ header is only recommended and is ignored
+  # https://tools.ietf.org/html/rfc7519#section-5.1
+  delete $header->{typ};
   croak 'Required header field "alg" not specified'
     unless my $algo = $self->algorithm(delete $header->{alg})->algorithm;
   $self->header($header);
