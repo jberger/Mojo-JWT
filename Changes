@@ -1,5 +1,8 @@
 Revision history for Perl module Mojo::JWT
 
+0.08 2018-12-03
+  - Specify minimum perl version (openstrike, PRC)
+
 0.07 2018-05-01
   - Soften restrictions on typ header
 

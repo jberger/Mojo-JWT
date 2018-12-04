@@ -2,7 +2,7 @@ package Mojo::JWT;
 
 use Mojo::Base -base;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 $VERSION = eval $VERSION;
 
 use Mojo::JSON qw/encode_json decode_json/;
