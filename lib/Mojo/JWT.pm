@@ -5,6 +5,7 @@ use Mojo::Base -base;
 our $VERSION = '0.08';
 $VERSION = eval $VERSION;
 
+use List::Util qw/first/;
 use Mojo::JSON qw/encode_json decode_json/;
 use MIME::Base64 qw/encode_base64url decode_base64url/;
 
@@ -14,6 +15,7 @@ has header => sub { {} };
 has algorithm => 'HS256';
 has [qw/allow_none set_iat/] => 0;
 has claims => sub { {} };
+has jwkset => sub { [] };
 has [qw/expires not_before/];
 has [qw/public secret/] => '';
 
@@ -71,6 +73,33 @@ sub decode {
   return $self->claims($claims)->claims;
 }
 
+sub decode_with_jwkset {
+  my ($self, $token) = @_;
+  croak 'Missing JWKSet' unless $self->jwkset->@* > 0;
+
+  my ($hstring) = split /\./, $token;
+  my $header = decode_json decode_base64url($hstring);
+
+  croak 'Required header field "alg" not specified' unless $header->{alg};
+  croak 'Required header field "kid" not specified' unless $header->{kid};
+
+  # Check we have the JWK for this JWT
+  my $jwk = first { exists $header->{kid} && $_->{kid} eq $header->{kid} } $self->jwkset->@*;
+  croak "Missing JWK for key_id=$header->{kid}" unless $jwk;
+
+  if ($header->{alg} =~ /^RS/) {
+    require Crypt::OpenSSL::Bignum;
+    my $n = Crypt::OpenSSL::Bignum->new_from_bin(decode_base64url $jwk->{n});
+    my $e = Crypt::OpenSSL::Bignum->new_from_bin(decode_base64url $jwk->{e});
+    my $pubkey = Crypt::OpenSSL::RSA->new_key_from_parameters($n, $e);
+    $self->public($pubkey);
+  } elsif ($header->{alg} =~ /^HS/) {
+    $self->secret( decode_base64url $jwk->{k} )
+  }
+
+  return $self->decode($token);
+}
+
 sub encode {
   my $self = shift;
   delete $self->{token};
@@ -122,7 +151,9 @@ sub token { shift->{token} }
 sub verify_rsa {
   my ($self, $size, $payload, $signature) = @_;
   require Crypt::OpenSSL::RSA;
-  my $crypt = Crypt::OpenSSL::RSA->new_public_key($self->public || croak 'public key not specified');
+  my $crypt = ref($self->public) eq 'Crypt::OpenSSL::RSA'
+    ? $self->public
+    : Crypt::OpenSSL::RSA->new_public_key($self->public || croak 'public key not specified');
   my $method = $crypt->can("use_sha${size}_hash") || croak 'Unsupported RS verification algorithm';
   $crypt->$method;
   return $crypt->verify($payload, $signature);
