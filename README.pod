@@ -64,6 +64,14 @@ The symmetric secret (eg. HMAC) or else the private key used in encoding an asym
 
 If true (false by default), then the C<iat> claim will be set to the value of L</now> during L</encode>.
 
+=head2 jwkset
+
+An arrayref of JWK objects usec by C<decode_with_jwkset> to verify the input token.
+
+    my $jwkset = Mojo::UserAgent->get('https://example.com/oidc/jwks.json')->result->json;
+    my $jwt = Mojo::JWT->new(jwkset => $jwkset);
+    $jwk->decode_with_jwkset($token);
+
 =head1 METHODS
 
 L<Mojo::JWT> inherits all of the methods from L<Mojo::Base> and implements the following new ones.
