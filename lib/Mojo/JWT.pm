@@ -75,7 +75,7 @@ sub decode {
 
 sub decode_with_jwkset {
   my ($self, $token) = @_;
-  croak 'Missing JWKSet' unless $self->jwkset->@* > 0;
+  croak 'Missing JWKSet' unless @{$self->jwkset} > 0;
 
   my ($hstring) = split /\./, $token;
   my $header = decode_json decode_base64url($hstring);
@@ -84,7 +84,7 @@ sub decode_with_jwkset {
   croak 'Required header field "kid" not specified' unless $header->{kid};
 
   # Check we have the JWK for this JWT
-  my $jwk = first { exists $header->{kid} && $_->{kid} eq $header->{kid} } $self->jwkset->@*;
+  my $jwk = first { exists $header->{kid} && $_->{kid} eq $header->{kid} } @{$self->jwkset};
   croak "Missing JWK for key_id=$header->{kid}" unless $jwk;
 
   if ($header->{alg} =~ /^RS/) {
