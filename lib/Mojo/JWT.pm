@@ -91,6 +91,8 @@ sub decode_with_jwkset {
     require Crypt::OpenSSL::Bignum;
     my $n = Crypt::OpenSSL::Bignum->new_from_bin(decode_base64url $jwk->{n});
     my $e = Crypt::OpenSSL::Bignum->new_from_bin(decode_base64url $jwk->{e});
+
+    require Crypt::OpenSSL::RSA;
     my $pubkey = Crypt::OpenSSL::RSA->new_key_from_parameters($n, $e);
     $self->public($pubkey);
   } elsif ($header->{alg} =~ /^HS/) {
