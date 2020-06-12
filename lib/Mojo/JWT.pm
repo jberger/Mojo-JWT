@@ -19,6 +19,7 @@ has [qw/public secret/] => '';
 
 my $re_hs = qr/^HS(\d+)$/;
 my $re_rs = qr/^RS(\d+)$/;
+my $re_es = qr/^ES(\d+)$/;
 
 sub decode {
   my ($self, $token, $peek) = @_;
@@ -49,7 +50,10 @@ sub decode {
       unless $self->allow_none;
   } elsif ($algo =~ $re_rs) {
     croak 'Failed RS validation'
-      unless $self->verify_rsa($1, $payload, $signature);
+      unless $self->verify_pub($1, Crypt::PK::RSA->new(), $payload, $signature);
+  } elsif ($algo =~ $re_es) {
+    croak 'Failed ES validation'
+      unless $self->verify_pub($1, Crypt::PK::ECC->new(), $payload, $signature);
   } elsif ($algo =~ $re_hs) {
     croak 'Failed HS validation'
       unless $signature eq $self->sign_hmac($1, $payload);
@@ -89,7 +93,11 @@ sub encode {
   if ($algo eq 'none') {
     $signature = '';
   } elsif ($algo =~ $re_rs) {
-    $signature = $self->sign_rsa($1, $payload);
+    require Crypt::PK::RSA;
+    $signature = $self->sign_pub($1, Crypt::PK::RSA->new(), $payload);
+  } elsif ($algo =~ $re_es) {
+    require Crypt::PK::ECC;
+    $signature = $self->sign_pub($1, Crypt::PK::ECC->new(), $payload);
   } elsif ($algo =~ $re_hs) {
     $signature = $self->sign_hmac($1, $payload);
   } else {
@@ -108,24 +116,22 @@ sub sign_hmac {
   return $f->($payload, $self->secret);
 }
 
-sub sign_rsa {
-  my ($self, $size, $payload) = @_;
-  require Crypt::OpenSSL::RSA;
-  my $crypt = Crypt::OpenSSL::RSA->new_private_key($self->secret || croak 'private key (secret) not specified');
-  my $method = $crypt->can("use_sha${size}_hash") || croak 'Unsupported RS signing algorithm';
-  $crypt->$method;
-  return $crypt->sign($payload);
+sub sign_pub {
+  my ($self, $size, $crypt, $payload) = @_;
+  my $key = $self->secret;
+  croak 'private key not specified' unless defined($key);
+  $crypt->import_key(\$key);
+  return $crypt->sign_message($payload, "SHA$size");
 }
 
 sub token { shift->{token} }
 
-sub verify_rsa {
-  my ($self, $size, $payload, $signature) = @_;
-  require Crypt::OpenSSL::RSA;
-  my $crypt = Crypt::OpenSSL::RSA->new_public_key($self->public || croak 'public key not specified');
-  my $method = $crypt->can("use_sha${size}_hash") || croak 'Unsupported RS verification algorithm';
-  $crypt->$method;
-  return $crypt->verify($payload, $signature);
+sub verify_pub {
+  my ($self, $size, $crypt, $payload, $signature) = @_;
+  my $key = $self->public;
+  croak 'public key not specified' unless defined($key);
+  $crypt->import_key(\$key);
+  return $crypt->verify_message($signature, $payload, "SHA$size");
 }
 
 1;
