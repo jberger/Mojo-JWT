@@ -5,7 +5,8 @@ use Test::More;
 
 use Mojo::JWT;
 
-my $has_rsa = eval { require Crypt::OpenSSL::RSA; 1 };
+my $has_rsa = eval { require Crypt::PK::RSA; 1 };
+my $has_ecc = eval { require Crypt::PK::ECC; 1 };
 
 
 {
@@ -41,12 +42,24 @@ my $has_rsa = eval { require Crypt::OpenSSL::RSA; 1 };
 }
 
 SKIP: {
-    skip 'requires Crypt::OpenSSL::RSA', 1 unless $has_rsa;
+    skip 'requires Crypt::PK::RSA', 1 unless $has_rsa;
     my $name = 'encodes and decodes JWTs for RSA signaturese';
-    my $rsa = Crypt::OpenSSL::RSA->generate_key(1024);
+    my $rsa = Crypt::PK::RSA->new();
+    $rsa->generate_key(128,65537);
     my $payload = {foo => 'bar'};
-    my $jwt = Mojo::JWT->new(claims => $payload, secret => $rsa->get_private_key_string, algorithm => 'RS512')->encode;
-    my $decoded_payload = Mojo::JWT->new(public => $rsa->get_public_key_string)->decode($jwt);
+    my $jwt = Mojo::JWT->new(claims => $payload, secret => $rsa->export_key_pem('private'), algorithm => 'RS512')->encode;
+    my $decoded_payload = Mojo::JWT->new(public => $rsa->export_key_pem('public'))->decode($jwt);
+    is_deeply $decoded_payload, $payload, $name;
+}
+
+SKIP: {
+    skip 'requires Crypt::PK::ECC', 1 unless $has_ecc;
+    my $name = 'encodes and decodes JWTs for ECC signaturese';
+    my $ecc = Crypt::PK::ECC->new();
+    $ecc->generate_key('secp384r1');
+    my $payload = {foo => 'bar'};
+    my $jwt = Mojo::JWT->new(claims => $payload, secret => $ecc->export_key_pem('private'), algorithm => 'ES512')->encode;
+    my $decoded_payload = Mojo::JWT->new(public => $ecc->export_key_pem('public'))->decode($jwt);
     is_deeply $decoded_payload, $payload, $name;
 }
 
@@ -74,12 +87,14 @@ SKIP: {
 SKIP: {
     skip 'requires Crypt::OpenSSL::RSA', 1 unless $has_rsa;
     my $name = 'raises exception with wrong rsa key';
-    my $right_rsa = Crypt::OpenSSL::RSA->generate_key(1024);
-    my $bad_rsa = Crypt::OpenSSL::RSA->generate_key(1024);
+    my $right_rsa = Crypt::PK::RSA->new;
+    $right_rsa->generate_key(128,65537);
+    my $bad_rsa = Crypt::PK::RSA->new;
+    $bad_rsa->generate_key(128,65537);
     my $payload = {foo => 'bar'};
-    my $jwt = Mojo::JWT->new(claims => $payload, secret => $right_rsa->get_private_key_string, algorithm => 'RS256')->encode;
+    my $jwt = Mojo::JWT->new(claims => $payload, secret => $right_rsa->export_key_pem('private'), algorithm => 'RS256')->encode;
     eval {
-        Mojo::JWT->new(public => $bad_rsa->get_public_key_string)->decode($jwt);
+        Mojo::JWT->new(public => $bad_rsa->export_key_pem('public'))->decode($jwt);
     };
     like $@, qr/^Failed RS validation/, $name;
 }
