@@ -5,11 +5,14 @@ use Mojo::Base -base;
 our $VERSION = '0.08';
 $VERSION = eval $VERSION;
 
+use Scalar::Util qw/blessed/;
 use List::Util qw/first/;
 use Mojo::JSON qw/encode_json decode_json/;
 use MIME::Base64 qw/encode_base64url decode_base64url/;
 
 use Carp;
+
+my $isa = sub { blessed $_[0] && $_[0]->isa($_[1]) };
 
 has header => sub { {} };
 has algorithm => 'HS256';
@@ -153,9 +156,8 @@ sub token { shift->{token} }
 sub verify_rsa {
   my ($self, $size, $payload, $signature) = @_;
   require Crypt::OpenSSL::RSA;
-  my $crypt = ref($self->public) eq 'Crypt::OpenSSL::RSA'
-    ? $self->public
-    : Crypt::OpenSSL::RSA->new_public_key($self->public || croak 'public key not specified');
+  croak 'public key not specified' unless my $public = $self->public;
+  my $crypt = $public->$isa('Crypt::OpenSSL::RSA') ? $public : Crypt::OpenSSL::RSA->new_public_key($public);
   my $method = $crypt->can("use_sha${size}_hash") || croak 'Unsupported RS verification algorithm';
   $crypt->$method;
   return $crypt->verify($payload, $signature);
