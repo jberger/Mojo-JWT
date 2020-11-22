@@ -133,7 +133,7 @@ SKIP: {
     my $payload = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InRlc3QifQ.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.fkLIy_Zvkt7wS6YhOqcaPkyqHK0hMwd1qBNoysXpWlt2fsArf-_ZwmDP8Qao23XPpY1lHrRRuXCpf_Fyyv8eBDYFTtopqkoXeaFPK2ERjCiK6dvOGeLwY5hXu-itTpueqdpeM2GTPS6Eu_JAtYe-wyztnS14BbCZrUCXJCOyuP4Kp78Hw0LfsiXwRb0OsHmefK7BrWJCptPTShVSu2UP0wPL5wBR0MEJIdp7fMcyqSVxmzYeaVxw_prTy655CmhanciawRgqx4ccTIRsfKR_s3SiatsPUeWqGfW2NsVgpzVRGUuOgBOOav6Bk7etb3U3wxAURyAW-9RZV6fsOpShbA';
 
     my $jwt = Mojo::JWT->new(jwkset => [decode_json $jwk]);
-    $jwt->decode_with_jwkset($payload);
+    $jwt->decode($payload);
     my $expected_claims = {sub => '1234567890', name => 'John Doe', admin => Mojo::JSON::true, iat => 1516239022};
     is_deeply $jwt->claims, $expected_claims, $name;
 }
@@ -146,9 +146,9 @@ SKIP: {
 
     my $jwt = Mojo::JWT->new(jwkset => [decode_json $jwk]);
     eval {
-        $jwt->decode_with_jwkset($payload);
+        $jwt->decode($payload);
     };
-    like $@, qr/^Required header field "kid" not specified/, $name;
+    like $@, qr/^public key not specified/, $name;
 }
 
 SKIP: {
@@ -159,9 +159,9 @@ SKIP: {
 
     my $jwt = Mojo::JWT->new(jwkset => [decode_json $jwk]);
     eval {
-        $jwt->decode_with_jwkset($payload);
+        $jwt->decode($payload);
     };
-    like $@, qr/^Missing JWK for key_id=test/, $name;
+    like $@, qr/^public key not specified/, $name;
 }
 
 done_testing;

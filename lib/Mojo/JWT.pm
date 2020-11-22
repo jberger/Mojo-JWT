@@ -45,6 +45,8 @@ sub decode {
     unless my $algo = $self->algorithm(delete $header->{alg})->algorithm;
   $self->header($header);
 
+  $self->_try_jwks($algo, $header);
+
   $self->$peek($claims) if $peek;
 
   # check signature
@@ -76,21 +78,15 @@ sub decode {
   return $self->claims($claims)->claims;
 }
 
-sub decode_with_jwkset {
-  my ($self, $token) = @_;
-  croak 'Missing JWKSet' unless @{$self->jwkset} > 0;
-
-  my ($hstring) = split /\./, $token;
-  my $header = decode_json decode_base64url($hstring);
-
-  croak 'Required header field "alg" not specified' unless $header->{alg};
-  croak 'Required header field "kid" not specified' unless $header->{kid};
+sub _try_jwks {
+  my ($self, $algo, $header) = @_;
+  return unless @{$self->jwkset} && $header->{kid};
 
   # Check we have the JWK for this JWT
   my $jwk = first { exists $header->{kid} && $_->{kid} eq $header->{kid} } @{$self->jwkset};
-  croak "Missing JWK for key_id=$header->{kid}" unless $jwk;
+  return unless $jwk;
 
-  if ($header->{alg} =~ /^RS/) {
+  if ($algo =~ /^RS/) {
     require Crypt::OpenSSL::Bignum;
     my $n = Crypt::OpenSSL::Bignum->new_from_bin(decode_base64url $jwk->{n});
     my $e = Crypt::OpenSSL::Bignum->new_from_bin(decode_base64url $jwk->{e});
@@ -98,11 +94,9 @@ sub decode_with_jwkset {
     require Crypt::OpenSSL::RSA;
     my $pubkey = Crypt::OpenSSL::RSA->new_key_from_parameters($n, $e);
     $self->public($pubkey);
-  } elsif ($header->{alg} =~ /^HS/) {
+  } elsif ($algo =~ /^HS/) {
     $self->secret( decode_base64url $jwk->{k} )
   }
-
-  return $self->decode($token);
 }
 
 sub encode {
@@ -233,11 +227,11 @@ If true (false by default), then the C<iat> claim will be set to the value of L<
 
 =head2 jwkset
 
-An arrayref of JWK objects usec by C<decode_with_jwkset> to verify the input token.
+An arrayref of JWK objects used by C<decode> to verify the input token when matching with the JWTs C<kid> field.
 
-    my $jwkset = Mojo::UserAgent->get('https://example.com/oidc/jwks.json')->result->json;
+    my $jwkset = Mojo::UserAgent->new->get('https://example.com/oidc/jwks.json')->result->json('/keys');
     my $jwt = Mojo::JWT->new(jwkset => $jwkset);
-    $jwk->decode_with_jwkset($token);
+    $jwk->decode($token);
 
 =head1 METHODS
 
@@ -262,6 +256,10 @@ Parsing occurs as follows
 =item *
 
 The L</algorithm> is extracted from the header and set, if not present or permissible an exception is thrown
+
+=item *
+
+Any JWKs in C</jwkset> are checked against the headers and if one is found then it is set in L</public> or L</secret> as appropriate to the L</algorithm>
 
 =item *
 
