@@ -25,6 +25,17 @@ has [qw/public secret/] => '';
 my $re_hs = qr/^HS(\d+)$/;
 my $re_rs = qr/^RS(\d+)$/;
 
+sub add_jwkset {
+  my ($self, $jwkset) = @_;
+  if (ref $jwkset eq 'HASH') {
+    push @{ $self->jwks }, @{ $jwkset->{keys} };
+  }
+  if (ref $jwkset eq 'ARRAY') {
+    push @{ $self->jwks }, @{ $jwkset };
+  }
+  return $self;
+}
+
 sub decode {
   my ($self, $token, $peek) = @_;
   $self->{token} = $token;
@@ -237,6 +248,17 @@ An arrayref of JWK objects used by C<decode> to verify the input token when matc
 =head1 METHODS
 
 L<Mojo::JWT> inherits all of the methods from L<Mojo::Base> and implements the following new ones.
+
+=head2 add_jwkset
+
+    my $jwkset = Mojo::UserAgent->new->get('https://example.com/oidc/jwks.json')->result->json;
+    my $jwt = Mojo::JWT->new->add_jwkset($jwksset);
+    $jwk->decode($token);
+
+Helper for appending a jwkset to the L</jwks>.
+Accepts a hashref with a C<keys> field that is an arrayref of jwks and also an arrayref directly.
+Appends the JWKs to L</jwks>.
+Returns the instance.
 
 =head2 decode
 
