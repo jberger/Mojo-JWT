@@ -131,9 +131,10 @@ sub now { time }
 
 sub sign_hmac {
   my ($self, $size, $payload) = @_;
+  croak 'symmetric secret not specified' unless my $secret = $self->secret;
   require Digest::SHA;
   my $f = Digest::SHA->can("hmac_sha$size") || croak 'Unsupported HS signing algorithm';
-  return $f->($payload, $self->secret);
+  return $f->($payload, $secret);
 }
 
 sub sign_rsa {

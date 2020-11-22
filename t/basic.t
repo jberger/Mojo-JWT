@@ -72,6 +72,18 @@ SKIP: {
     like $@, qr/^Failed HS validation/, $name;
 }
 
+{
+    my $name = 'raises exception with empty hmac key';
+    my $right_secret = 'foo';
+    my $bad_secret = '';
+    my $payload = {foo => 'bar'};
+    my $jwt_message = Mojo::JWT->new(claims => $payload, secret => $right_secret, algorithm => 'HS256')->encode;
+    eval {
+        Mojo::JWT->new(secret => $bad_secret)->decode($jwt_message);
+    };
+    like $@, qr/^symmetric secret not specified/, $name;
+}
+
 SKIP: {
     skip 'requires Crypt::OpenSSL::RSA', 1 unless $has_rsa;
     my $name = 'raises exception with wrong rsa key';
