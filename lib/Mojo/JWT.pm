@@ -2,7 +2,7 @@ package Mojo::JWT;
 
 use Mojo::Base -base;
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 $VERSION = eval $VERSION;
 
 use Scalar::Util qw/blessed/;
@@ -384,6 +384,8 @@ Joel Berger, E<lt>joel.a.berger@gmail.comE<gt>
 =head1 CONTRIBUTORS
 
 Christopher Raa (mishanti1)
+
+Cameron Daniel (ccakes)
 
 =head1 COPYRIGHT AND LICENSE
 

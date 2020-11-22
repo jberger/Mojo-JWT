@@ -64,17 +64,28 @@ The symmetric secret (eg. HMAC) or else the private key used in encoding an asym
 
 If true (false by default), then the C<iat> claim will be set to the value of L</now> during L</encode>.
 
-=head2 jwkset
+=head2 jwks
 
-An arrayref of JWK objects usec by C<decode_with_jwkset> to verify the input token.
+An arrayref of JWK objects used by C<decode> to verify the input token when matching with the JWTs C<kid> field.
 
-    my $jwkset = Mojo::UserAgent->get('https://example.com/oidc/jwks.json')->result->json;
-    my $jwt = Mojo::JWT->new(jwkset => $jwkset);
-    $jwk->decode_with_jwkset($token);
+    my $jwks = Mojo::UserAgent->new->get('https://example.com/oidc/jwks.json')->result->json('/keys');
+    my $jwt = Mojo::JWT->new(jwks => $jwks);
+    $jwk->decode($token);
 
 =head1 METHODS
 
 L<Mojo::JWT> inherits all of the methods from L<Mojo::Base> and implements the following new ones.
+
+=head2 add_jwkset
+
+    my $jwkset = Mojo::UserAgent->new->get('https://example.com/oidc/jwks.json')->result->json;
+    my $jwt = Mojo::JWT->new->add_jwkset($jwksset);
+    $jwk->decode($token);
+
+Helper for appending a jwkset to the L</jwks>.
+Accepts a hashref with a C<keys> field that is an arrayref of jwks and also an arrayref directly.
+Appends the JWKs to L</jwks>.
+Returns the instance.
 
 =head2 decode
 
@@ -95,6 +106,10 @@ Parsing occurs as follows
 =item *
 
 The L</algorithm> is extracted from the header and set, if not present or permissible an exception is thrown
+
+=item *
+
+Any JWKs in C</jwks> are checked against the headers and if one is found then it is set in L</public> or L</secret> as appropriate to the L</algorithm>
 
 =item *
 
@@ -196,6 +211,8 @@ Joel Berger, E<lt>joel.a.berger@gmail.comE<gt>
 =head1 CONTRIBUTORS
 
 Christopher Raa (mishanti1)
+
+Cameron Daniel (ccakes)
 
 =head1 COPYRIGHT AND LICENSE
 
