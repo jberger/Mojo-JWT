@@ -18,7 +18,7 @@ has header => sub { {} };
 has algorithm => 'HS256';
 has [qw/allow_none set_iat/] => 0;
 has claims => sub { {} };
-has jwkset => sub { [] };
+has jwks => sub { [] };
 has [qw/expires not_before/];
 has [qw/public secret/] => '';
 
@@ -80,10 +80,10 @@ sub decode {
 
 sub _try_jwks {
   my ($self, $algo, $header) = @_;
-  return unless @{$self->jwkset} && $header->{kid};
+  return unless @{$self->jwks} && $header->{kid};
 
   # Check we have the JWK for this JWT
-  my $jwk = first { exists $header->{kid} && $_->{kid} eq $header->{kid} } @{$self->jwkset};
+  my $jwk = first { exists $header->{kid} && $_->{kid} eq $header->{kid} } @{$self->jwks};
   return unless $jwk;
 
   if ($algo =~ /^RS/) {
@@ -226,12 +226,12 @@ The symmetric secret (eg. HMAC) or else the private key used in encoding an asym
 
 If true (false by default), then the C<iat> claim will be set to the value of L</now> during L</encode>.
 
-=head2 jwkset
+=head2 jwks
 
 An arrayref of JWK objects used by C<decode> to verify the input token when matching with the JWTs C<kid> field.
 
-    my $jwkset = Mojo::UserAgent->new->get('https://example.com/oidc/jwks.json')->result->json('/keys');
-    my $jwt = Mojo::JWT->new(jwkset => $jwkset);
+    my $jwks = Mojo::UserAgent->new->get('https://example.com/oidc/jwks.json')->result->json('/keys');
+    my $jwt = Mojo::JWT->new(jwks => $jwks);
     $jwk->decode($token);
 
 =head1 METHODS
@@ -260,7 +260,7 @@ The L</algorithm> is extracted from the header and set, if not present or permis
 
 =item *
 
-Any JWKs in C</jwkset> are checked against the headers and if one is found then it is set in L</public> or L</secret> as appropriate to the L</algorithm>
+Any JWKs in C</jwks> are checked against the headers and if one is found then it is set in L</public> or L</secret> as appropriate to the L</algorithm>
 
 =item *
 
