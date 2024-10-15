@@ -1,5 +1,5 @@
 requires 'Mojolicious', '5.00';
-requires 'Digest::SHA';
+requires 'CryptX';
 requires 'MIME::Base64', '3.11';
 requires 'perl', '5.010';
 

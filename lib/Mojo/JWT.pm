@@ -10,6 +10,8 @@ use List::Util qw/first/;
 use Mojo::JSON qw/encode_json decode_json/;
 use MIME::Base64 qw/encode_base64url decode_base64url/;
 
+use CryptX;
+
 use Carp;
 
 my $isa = sub { blessed $_[0] && $_[0]->isa($_[1]) };
@@ -143,9 +145,9 @@ sub now { time }
 sub sign_hmac {
   my ($self, $size, $payload) = @_;
   croak 'symmetric secret not specified' unless my $secret = $self->secret;
-  require Digest::SHA;
-  my $f = Digest::SHA->can("hmac_sha$size") || croak 'Unsupported HS signing algorithm';
-  return $f->($payload, $secret);
+  croak 'Unsupported HS signing algorithm' unless $size == 256 || $size == 384 || $size == 512;
+  require Crypt::Mac::HMAC;
+  return Crypt::Mac::HMAC::hmac("SHA$size", $secret, $payload);
 }
 
 sub sign_rsa {
