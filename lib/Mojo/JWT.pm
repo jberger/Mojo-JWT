@@ -5,16 +5,16 @@ use Mojo::Base -base;
 our $VERSION = '0.09';
 $VERSION = eval $VERSION;
 
-use Scalar::Util qw/blessed/;
-use List::Util qw/first/;
-use Mojo::JSON qw/encode_json decode_json/;
+use Scalar::Util ();
+use List::Util ();
+use Mojo::JSON ();
 
 use CryptX;
 use Crypt::Misc ();
 
-use Carp();
+use Carp ();
 
-my $isa = sub { blessed $_[0] && $_[0]->isa($_[1]) };
+my $isa = sub { Scalar::Util::blessed $_[0] && $_[0]->isa($_[1]) };
 
 has header => sub { {} };
 has algorithm => 'HS256';
@@ -47,8 +47,8 @@ sub decode {
   delete $self->{$_} for qw/claims expires not_before header/;
 
   my ($hstring, $cstring, $signature) = split /\./, $token;
-  my $header = decode_json Crypt::Misc::decode_b64u($hstring);
-  my $claims = decode_json Crypt::Misc::decode_b64u($cstring);
+  my $header = Mojo::JSON::decode_json Crypt::Misc::decode_b64u($hstring);
+  my $claims = Mojo::JSON::decode_json Crypt::Misc::decode_b64u($cstring);
   $signature = Crypt::Misc::decode_b64u $signature;
 
   # typ header is only recommended and is ignored
@@ -96,7 +96,7 @@ sub _try_jwks {
   return unless @{$self->jwks} && $header->{kid};
 
   # Check we have the JWK for this JWT
-  my $jwk = first { exists $header->{kid} && $_->{kid} eq $header->{kid} } @{$self->jwks};
+  my $jwk = List::Util::first { exists $header->{kid} && $_->{kid} eq $header->{kid} } @{$self->jwks};
   return unless $jwk;
 
   if ($algo =~ $re_rs) {
@@ -118,8 +118,8 @@ sub encode {
   if (defined(my $nbf = $self->not_before)) { $claims->{nbf} = $nbf }
 
   my $header  = { %{ $self->header }, typ => 'JWT', alg => $self->algorithm };
-  my $hstring = Crypt::Misc::encode_b64u encode_json($header);
-  my $cstring = Crypt::Misc::encode_b64u encode_json($claims);
+  my $hstring = Crypt::Misc::encode_b64u Mojo::JSON::encode_json($header);
+  my $cstring = Crypt::Misc::encode_b64u Mojo::JSON::encode_json($claims);
   my $payload = "$hstring.$cstring";
   my $signature;
   my $algo = $self->algorithm;
