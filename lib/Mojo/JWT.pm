@@ -8,9 +8,11 @@ $VERSION = eval $VERSION;
 use Scalar::Util qw/blessed/;
 use List::Util qw/first/;
 use Mojo::JSON qw/encode_json decode_json/;
-use MIME::Base64 qw/encode_base64url decode_base64url/;
 
-use Carp;
+use CryptX;
+use Crypt::Misc ();
+
+use Carp();
 
 my $isa = sub { blessed $_[0] && $_[0]->isa($_[1]) };
 
@@ -45,14 +47,14 @@ sub decode {
   delete $self->{$_} for qw/claims expires not_before header/;
 
   my ($hstring, $cstring, $signature) = split /\./, $token;
-  my $header = decode_json decode_base64url($hstring);
-  my $claims = decode_json decode_base64url($cstring);
-  $signature = decode_base64url $signature;
+  my $header = decode_json Crypt::Misc::decode_b64u($hstring);
+  my $claims = decode_json Crypt::Misc::decode_b64u($cstring);
+  $signature = Crypt::Misc::decode_b64u $signature;
 
   # typ header is only recommended and is ignored
   # https://tools.ietf.org/html/rfc7519#section-5.1
   delete $header->{typ};
-  croak 'Required header field "alg" not specified'
+  Carp::croak 'Required header field "alg" not specified'
     unless my $algo = $self->algorithm(delete $header->{alg})->algorithm;
   $self->header($header);
 
@@ -63,26 +65,26 @@ sub decode {
   # check signature
   my $payload = "$hstring.$cstring";
   if ($algo eq 'none') {
-    croak 'Algorithm "none" is prohibited'
+    Carp::croak 'Algorithm "none" is prohibited'
       unless $self->allow_none;
   } elsif ($algo =~ $re_rs) {
-    croak 'Failed RS validation'
+    Carp::croak 'Failed RS validation'
       unless $self->verify_rsa($1, $payload, $signature);
   } elsif ($algo =~ $re_hs) {
-    croak 'Failed HS validation'
+    Carp::croak 'Failed HS validation'
       unless $signature eq $self->sign_hmac($1, $payload);
   } else {
-    croak 'Unsupported signing algorithm';
+    Carp::croak 'Unsupported signing algorithm';
   }
 
   # check timing
   my $now = $self->now;
   if (defined(my $exp = $claims->{exp})) {
-    croak 'JWT has expired' if $now > $exp;
+    Carp::croak 'JWT has expired' if $now > $exp;
     $self->expires($exp);
   }
   if (defined(my $nbf = $claims->{nbf})) {
-    croak 'JWT is not yet valid' if $now < $nbf;
+    Carp::croak 'JWT is not yet valid' if $now < $nbf;
     $self->not_before($nbf);
   }
 
@@ -97,16 +99,12 @@ sub _try_jwks {
   my $jwk = first { exists $header->{kid} && $_->{kid} eq $header->{kid} } @{$self->jwks};
   return unless $jwk;
 
-  if ($algo =~ /^RS/) {
-    require Crypt::OpenSSL::Bignum;
-    my $n = Crypt::OpenSSL::Bignum->new_from_bin(decode_base64url $jwk->{n});
-    my $e = Crypt::OpenSSL::Bignum->new_from_bin(decode_base64url $jwk->{e});
-
-    require Crypt::OpenSSL::RSA;
-    my $pubkey = Crypt::OpenSSL::RSA->new_key_from_parameters($n, $e);
+  if ($algo =~ $re_rs) {
+    require Crypt::PK::RSA;
+    my $pubkey = Crypt::PK::RSA->new($jwk);
     $self->public($pubkey);
-  } elsif ($algo =~ /^HS/) {
-    $self->secret( decode_base64url $jwk->{k} )
+  } elsif ($algo =~ $re_hs) {
+    $self->secret( Crypt::Misc::decode_b64u $jwk->{k} )
   }
 }
 
@@ -120,8 +118,8 @@ sub encode {
   if (defined(my $nbf = $self->not_before)) { $claims->{nbf} = $nbf }
 
   my $header  = { %{ $self->header }, typ => 'JWT', alg => $self->algorithm };
-  my $hstring = encode_base64url encode_json($header);
-  my $cstring = encode_base64url encode_json($claims);
+  my $hstring = Crypt::Misc::encode_b64u encode_json($header);
+  my $cstring = Crypt::Misc::encode_b64u encode_json($claims);
   my $payload = "$hstring.$cstring";
   my $signature;
   my $algo = $self->algorithm;
@@ -132,41 +130,48 @@ sub encode {
   } elsif ($algo =~ $re_hs) {
     $signature = $self->sign_hmac($1, $payload);
   } else {
-    croak 'Unknown algorithm';
+    Carp::croak 'Unknown algorithm';
   }
 
-  return $self->{token} = "$payload." . encode_base64url $signature;
+  return $self->{token} = "$payload." . Crypt::Misc::encode_b64u $signature;
 }
 
 sub now { time }
 
 sub sign_hmac {
   my ($self, $size, $payload) = @_;
-  croak 'symmetric secret not specified' unless my $secret = $self->secret;
-  require Digest::SHA;
-  my $f = Digest::SHA->can("hmac_sha$size") || croak 'Unsupported HS signing algorithm';
-  return $f->($payload, $secret);
+  Carp::croak 'symmetric secret not specified' unless my $secret = $self->secret;
+  Carp::croak 'Unsupported HS signing algorithm' unless $size == 256 || $size == 384 || $size == 512;
+  require Crypt::Mac::HMAC;
+  return Crypt::Mac::HMAC::hmac("SHA$size", $secret, $payload);
 }
 
 sub sign_rsa {
   my ($self, $size, $payload) = @_;
-  require Crypt::OpenSSL::RSA;
-  my $crypt = Crypt::OpenSSL::RSA->new_private_key($self->secret || croak 'private key (secret) not specified');
-  my $method = $crypt->can("use_sha${size}_hash") || croak 'Unsupported RS signing algorithm';
-  $crypt->$method;
-  return $crypt->sign($payload);
+  Carp::croak 'Unsupported RS signing algorithm' unless $size == 256 || $size == 384 || $size == 512;
+  Carp::croak 'secret key not specified' unless my $secret = $self->secret;
+  my $crypt = _inflate_rsa_key($secret);
+  return $crypt->sign_message($payload, "SHA$size", 'v1.5');
 }
 
 sub token { shift->{token} }
 
 sub verify_rsa {
   my ($self, $size, $payload, $signature) = @_;
-  require Crypt::OpenSSL::RSA;
-  croak 'public key not specified' unless my $public = $self->public;
-  my $crypt = $public->$isa('Crypt::OpenSSL::RSA') ? $public : Crypt::OpenSSL::RSA->new_public_key($public);
-  my $method = $crypt->can("use_sha${size}_hash") || croak 'Unsupported RS verification algorithm';
-  $crypt->$method;
-  return $crypt->verify($payload, $signature);
+  Carp::croak 'Unsupported RS verification algorithm' unless $size == 256 || $size == 384 || $size == 512;
+  Carp::croak 'public key not specified' unless my $public = $self->public;
+  my $crypt = _inflate_rsa_key($public);
+  return $crypt->verify_message($signature, $payload, "SHA$size", 'v1.5');
+}
+
+sub _inflate_rsa_key {
+  my ($key) = @_;
+  require Crypt::PK::RSA;
+  return $key if $key->$isa('Crypt::PK::RSA');
+  if ($key->$isa('Crypt::OpenSSL::RSA')) {
+    $key = $key->is_private ? $key->get_private_key_string : $key->get_public_key_string;
+  }
+  return Crypt::PK::RSA->new(\$key);
 }
 
 1;
@@ -228,10 +233,13 @@ This value (if set and not undefined) will be used as the C<nbf> key in the clai
 =head2 public
 
 The public key to be used in decoding an asymmetrically signed JWT (eg. RSA).
+This can be any public key in a string format accepted by L<Crypt::PK::RSA> or a L<Crypt::PK::RSA> object (if used a L<Crypt::OpenSSL::RSA> object will be converted).
 
 =head2 secret
 
 The symmetric secret (eg. HMAC) or else the private key used in encoding an asymmetrically signed JWT (eg. RSA).
+Symmetric secrets should be a string.
+A private key can be in a string format accepted by L<Crypt::PK::RSA> or a L<Crypt::PK::RSA> object (if used a L<Crypt::OpenSSL::RSA> object will be converted).
 
 =head2 set_iat
 
