@@ -100,12 +100,9 @@ sub _try_jwks {
   return unless $jwk;
 
   if ($algo =~ $re_rs) {
-    require Crypt::OpenSSL::Bignum;
-    my $n = Crypt::OpenSSL::Bignum->new_from_bin(decode_base64url $jwk->{n});
-    my $e = Crypt::OpenSSL::Bignum->new_from_bin(decode_base64url $jwk->{e});
-
-    require Crypt::OpenSSL::RSA;
-    my $pubkey = Crypt::OpenSSL::RSA->new_key_from_parameters($n, $e);
+    require Crypt::PK::RSA;
+    my $pubkey = Crypt::PK::RSA->new();
+    $pubkey->import_key($jwk);
     $self->public($pubkey);
   } elsif ($algo =~ $re_hs) {
     $self->secret( decode_base64url $jwk->{k} )
@@ -152,23 +149,28 @@ sub sign_hmac {
 
 sub sign_rsa {
   my ($self, $size, $payload) = @_;
-  require Crypt::OpenSSL::RSA;
-  my $crypt = Crypt::OpenSSL::RSA->new_private_key($self->secret || croak 'private key (secret) not specified');
-  my $method = $crypt->can("use_sha${size}_hash") || croak 'Unsupported RS signing algorithm';
-  $crypt->$method;
-  return $crypt->sign($payload);
+  croak 'Unsupported RS signing algorithm' unless $size == 256 || $size == 384 || $size == 512;
+  croak 'secret key not specified' unless my $secret = $self->secret;
+  my $crypt = $self->_inflate_rsa_key($secret);
+  return $crypt->sign_message($payload, "SHA$size", 'v1.5');
 }
 
 sub token { shift->{token} }
 
 sub verify_rsa {
   my ($self, $size, $payload, $signature) = @_;
-  require Crypt::OpenSSL::RSA;
+  croak 'Unsupported RS verification algorithm' unless $size == 256 || $size == 384 || $size == 512;
+  require Crypt::PK::RSA;
   croak 'public key not specified' unless my $public = $self->public;
-  my $crypt = $public->$isa('Crypt::OpenSSL::RSA') ? $public : Crypt::OpenSSL::RSA->new_public_key($public);
-  my $method = $crypt->can("use_sha${size}_hash") || croak 'Unsupported RS verification algorithm';
-  $crypt->$method;
-  return $crypt->verify($payload, $signature);
+  my $crypt = $self->_inflate_rsa_key($public);
+  return $crypt->verify_message($signature, $payload, "SHA$size", 'v1.5');
+}
+
+sub _inflate_rsa_key {
+  my ($self, $key) = @_;
+  require Crypt::PK::RSA;
+  return $key if $key->$isa('Crypt::PK::RSA');
+  return Crypt::PK::RSA->new(\$key);
 }
 
 1;
