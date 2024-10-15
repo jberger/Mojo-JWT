@@ -61,7 +61,7 @@ use Crypt::PK::RSA;
 }
 
 SKIP: {
-    skip 'requires Crypt::OpenSSL::RSA', 1 unless require Crypt::OpenSSL::RSA;
+    skip 'requires Crypt::OpenSSL::RSA', 1 unless eval { require Crypt::OpenSSL::RSA; 1 };
     my $name = 'encodes and decodes JWTs for RSA signatures (from Crypt::OpenSSL::RSA objects)';
     my $rsa = Crypt::OpenSSL::RSA->generate_key(1024);
     my $payload = {foo => 'bar'};

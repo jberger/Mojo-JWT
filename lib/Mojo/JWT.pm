@@ -2,7 +2,7 @@ package Mojo::JWT;
 
 use Mojo::Base -base;
 
-our $VERSION = '1.00';
+our $VERSION = '1.01';
 $VERSION = eval $VERSION;
 
 use Scalar::Util ();
