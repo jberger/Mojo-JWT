@@ -12,7 +12,7 @@ use MIME::Base64 qw/encode_base64url decode_base64url/;
 
 use CryptX;
 
-use Carp;
+use Carp();
 
 my $isa = sub { blessed $_[0] && $_[0]->isa($_[1]) };
 
@@ -54,7 +54,7 @@ sub decode {
   # typ header is only recommended and is ignored
   # https://tools.ietf.org/html/rfc7519#section-5.1
   delete $header->{typ};
-  croak 'Required header field "alg" not specified'
+  Carp::croak 'Required header field "alg" not specified'
     unless my $algo = $self->algorithm(delete $header->{alg})->algorithm;
   $self->header($header);
 
@@ -65,26 +65,26 @@ sub decode {
   # check signature
   my $payload = "$hstring.$cstring";
   if ($algo eq 'none') {
-    croak 'Algorithm "none" is prohibited'
+    Carp::croak 'Algorithm "none" is prohibited'
       unless $self->allow_none;
   } elsif ($algo =~ $re_rs) {
-    croak 'Failed RS validation'
+    Carp::croak 'Failed RS validation'
       unless $self->verify_rsa($1, $payload, $signature);
   } elsif ($algo =~ $re_hs) {
-    croak 'Failed HS validation'
+    Carp::croak 'Failed HS validation'
       unless $signature eq $self->sign_hmac($1, $payload);
   } else {
-    croak 'Unsupported signing algorithm';
+    Carp::croak 'Unsupported signing algorithm';
   }
 
   # check timing
   my $now = $self->now;
   if (defined(my $exp = $claims->{exp})) {
-    croak 'JWT has expired' if $now > $exp;
+    Carp::croak 'JWT has expired' if $now > $exp;
     $self->expires($exp);
   }
   if (defined(my $nbf = $claims->{nbf})) {
-    croak 'JWT is not yet valid' if $now < $nbf;
+    Carp::croak 'JWT is not yet valid' if $now < $nbf;
     $self->not_before($nbf);
   }
 
@@ -131,7 +131,7 @@ sub encode {
   } elsif ($algo =~ $re_hs) {
     $signature = $self->sign_hmac($1, $payload);
   } else {
-    croak 'Unknown algorithm';
+    Carp::croak 'Unknown algorithm';
   }
 
   return $self->{token} = "$payload." . encode_base64url $signature;
@@ -141,16 +141,16 @@ sub now { time }
 
 sub sign_hmac {
   my ($self, $size, $payload) = @_;
-  croak 'symmetric secret not specified' unless my $secret = $self->secret;
-  croak 'Unsupported HS signing algorithm' unless $size == 256 || $size == 384 || $size == 512;
+  Carp::croak 'symmetric secret not specified' unless my $secret = $self->secret;
+  Carp::croak 'Unsupported HS signing algorithm' unless $size == 256 || $size == 384 || $size == 512;
   require Crypt::Mac::HMAC;
   return Crypt::Mac::HMAC::hmac("SHA$size", $secret, $payload);
 }
 
 sub sign_rsa {
   my ($self, $size, $payload) = @_;
-  croak 'Unsupported RS signing algorithm' unless $size == 256 || $size == 384 || $size == 512;
-  croak 'secret key not specified' unless my $secret = $self->secret;
+  Carp::croak 'Unsupported RS signing algorithm' unless $size == 256 || $size == 384 || $size == 512;
+  Carp::croak 'secret key not specified' unless my $secret = $self->secret;
   my $crypt = $self->_inflate_rsa_key($secret);
   return $crypt->sign_message($payload, "SHA$size", 'v1.5');
 }
@@ -159,9 +159,9 @@ sub token { shift->{token} }
 
 sub verify_rsa {
   my ($self, $size, $payload, $signature) = @_;
-  croak 'Unsupported RS verification algorithm' unless $size == 256 || $size == 384 || $size == 512;
+  Carp::croak 'Unsupported RS verification algorithm' unless $size == 256 || $size == 384 || $size == 512;
   require Crypt::PK::RSA;
-  croak 'public key not specified' unless my $public = $self->public;
+  Carp::croak 'public key not specified' unless my $public = $self->public;
   my $crypt = $self->_inflate_rsa_key($public);
   return $crypt->verify_message($signature, $payload, "SHA$size", 'v1.5');
 }
