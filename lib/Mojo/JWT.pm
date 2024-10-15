@@ -8,9 +8,9 @@ $VERSION = eval $VERSION;
 use Scalar::Util qw/blessed/;
 use List::Util qw/first/;
 use Mojo::JSON qw/encode_json decode_json/;
-use MIME::Base64 qw/encode_base64url decode_base64url/;
 
 use CryptX;
+use Crypt::Misc ();
 
 use Carp();
 
@@ -47,9 +47,9 @@ sub decode {
   delete $self->{$_} for qw/claims expires not_before header/;
 
   my ($hstring, $cstring, $signature) = split /\./, $token;
-  my $header = decode_json decode_base64url($hstring);
-  my $claims = decode_json decode_base64url($cstring);
-  $signature = decode_base64url $signature;
+  my $header = decode_json Crypt::Misc::decode_b64u($hstring);
+  my $claims = decode_json Crypt::Misc::decode_b64u($cstring);
+  $signature = Crypt::Misc::decode_b64u $signature;
 
   # typ header is only recommended and is ignored
   # https://tools.ietf.org/html/rfc7519#section-5.1
@@ -105,7 +105,7 @@ sub _try_jwks {
     $pubkey->import_key($jwk);
     $self->public($pubkey);
   } elsif ($algo =~ $re_hs) {
-    $self->secret( decode_base64url $jwk->{k} )
+    $self->secret( Crypt::Misc::decode_b64u $jwk->{k} )
   }
 }
 
@@ -119,8 +119,8 @@ sub encode {
   if (defined(my $nbf = $self->not_before)) { $claims->{nbf} = $nbf }
 
   my $header  = { %{ $self->header }, typ => 'JWT', alg => $self->algorithm };
-  my $hstring = encode_base64url encode_json($header);
-  my $cstring = encode_base64url encode_json($claims);
+  my $hstring = Crypt::Misc::encode_b64u encode_json($header);
+  my $cstring = Crypt::Misc::encode_b64u encode_json($claims);
   my $payload = "$hstring.$cstring";
   my $signature;
   my $algo = $self->algorithm;
@@ -134,7 +134,7 @@ sub encode {
     Carp::croak 'Unknown algorithm';
   }
 
-  return $self->{token} = "$payload." . encode_base64url $signature;
+  return $self->{token} = "$payload." . Crypt::Misc::encode_b64u $signature;
 }
 
 sub now { time }
@@ -160,7 +160,6 @@ sub token { shift->{token} }
 sub verify_rsa {
   my ($self, $size, $payload, $signature) = @_;
   Carp::croak 'Unsupported RS verification algorithm' unless $size == 256 || $size == 384 || $size == 512;
-  require Crypt::PK::RSA;
   Carp::croak 'public key not specified' unless my $public = $self->public;
   my $crypt = $self->_inflate_rsa_key($public);
   return $crypt->verify_message($signature, $payload, "SHA$size", 'v1.5');

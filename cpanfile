@@ -1,6 +1,5 @@
 requires 'Mojolicious', '5.00';
-requires 'CryptX';
-requires 'MIME::Base64', '3.11';
+requires 'CryptX', '0.029';
 requires 'perl', '5.010';
 
 configure_requires 'Module::Build::Tiny';
