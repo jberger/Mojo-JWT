@@ -101,8 +101,7 @@ sub _try_jwks {
 
   if ($algo =~ $re_rs) {
     require Crypt::PK::RSA;
-    my $pubkey = Crypt::PK::RSA->new();
-    $pubkey->import_key($jwk);
+    my $pubkey = Crypt::PK::RSA->new($jwk);
     $self->public($pubkey);
   } elsif ($algo =~ $re_hs) {
     $self->secret( Crypt::Misc::decode_b64u $jwk->{k} )
@@ -151,7 +150,7 @@ sub sign_rsa {
   my ($self, $size, $payload) = @_;
   Carp::croak 'Unsupported RS signing algorithm' unless $size == 256 || $size == 384 || $size == 512;
   Carp::croak 'secret key not specified' unless my $secret = $self->secret;
-  my $crypt = $self->_inflate_rsa_key($secret);
+  my $crypt = _inflate_rsa_key($secret);
   return $crypt->sign_message($payload, "SHA$size", 'v1.5');
 }
 
@@ -161,12 +160,12 @@ sub verify_rsa {
   my ($self, $size, $payload, $signature) = @_;
   Carp::croak 'Unsupported RS verification algorithm' unless $size == 256 || $size == 384 || $size == 512;
   Carp::croak 'public key not specified' unless my $public = $self->public;
-  my $crypt = $self->_inflate_rsa_key($public);
+  my $crypt = _inflate_rsa_key($public);
   return $crypt->verify_message($signature, $payload, "SHA$size", 'v1.5');
 }
 
 sub _inflate_rsa_key {
-  my ($self, $key) = @_;
+  my ($key) = @_;
   require Crypt::PK::RSA;
   return $key if $key->$isa('Crypt::PK::RSA');
   if ($key->$isa('Crypt::OpenSSL::RSA')) {
