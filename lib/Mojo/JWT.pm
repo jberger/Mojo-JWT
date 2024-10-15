@@ -97,7 +97,7 @@ sub _try_jwks {
   my $jwk = first { exists $header->{kid} && $_->{kid} eq $header->{kid} } @{$self->jwks};
   return unless $jwk;
 
-  if ($algo =~ /^RS/) {
+  if ($algo =~ $re_rs) {
     require Crypt::OpenSSL::Bignum;
     my $n = Crypt::OpenSSL::Bignum->new_from_bin(decode_base64url $jwk->{n});
     my $e = Crypt::OpenSSL::Bignum->new_from_bin(decode_base64url $jwk->{e});
@@ -105,7 +105,7 @@ sub _try_jwks {
     require Crypt::OpenSSL::RSA;
     my $pubkey = Crypt::OpenSSL::RSA->new_key_from_parameters($n, $e);
     $self->public($pubkey);
-  } elsif ($algo =~ /^HS/) {
+  } elsif ($algo =~ $re_hs) {
     $self->secret( decode_base64url $jwk->{k} )
   }
 }
