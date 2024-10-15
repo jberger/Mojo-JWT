@@ -60,6 +60,16 @@ use Crypt::PK::RSA;
     is_deeply $decoded_payload, $payload, $name;
 }
 
+SKIP: {
+    skip 'requires Crypt::OpenSSL::RSA', 1 unless require Crypt::OpenSSL::RSA;
+    my $name = 'encodes and decodes JWTs for RSA signatures (from Crypt::OpenSSL::RSA objects)';
+    my $rsa = Crypt::OpenSSL::RSA->generate_key(1024);
+    my $payload = {foo => 'bar'};
+    my $jwt = Mojo::JWT->new(claims => $payload, secret => $rsa, algorithm => 'RS512')->encode;
+    my $decoded_payload = Mojo::JWT->new(public => $rsa)->decode($jwt);
+    is_deeply $decoded_payload, $payload, $name;
+}
+
 {
     my $name = 'decodes valid JWTs';
     my $example_payload = {hello => 'world'};

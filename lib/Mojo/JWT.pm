@@ -170,6 +170,9 @@ sub _inflate_rsa_key {
   my ($self, $key) = @_;
   require Crypt::PK::RSA;
   return $key if $key->$isa('Crypt::PK::RSA');
+  if ($key->$isa('Crypt::OpenSSL::RSA')) {
+    $key = $key->is_private ? $key->get_private_key_string : $key->get_public_key_string;
+  }
   return Crypt::PK::RSA->new(\$key);
 }
 
@@ -232,10 +235,13 @@ This value (if set and not undefined) will be used as the C<nbf> key in the clai
 =head2 public
 
 The public key to be used in decoding an asymmetrically signed JWT (eg. RSA).
+This can be any public key in a string format accepted by L<Crypt::PK::RSA> or a L<Crypt::PK::RSA> object (if used a L<Crypt::OpenSSL::RSA> object will be converted).
 
 =head2 secret
 
 The symmetric secret (eg. HMAC) or else the private key used in encoding an asymmetrically signed JWT (eg. RSA).
+Symmetric secrets should be a string.
+A private key can be in a string format accepted by L<Crypt::PK::RSA> or a L<Crypt::PK::RSA> object (if used a L<Crypt::OpenSSL::RSA> object will be converted).
 
 =head2 set_iat
 
