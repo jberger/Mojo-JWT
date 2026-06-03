@@ -397,6 +397,8 @@ Cameron Daniel (ccakes)
 
 Olaf Alders (oalders)
 
+Robert Rothenberg (robrwo)
+
 =head1 COPYRIGHT AND LICENSE
 
 Copyright (C) 2015 by L</AUTHOR> and L</CONTRIBTORS>.
