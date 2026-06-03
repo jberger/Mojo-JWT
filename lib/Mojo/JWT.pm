@@ -2,7 +2,7 @@ package Mojo::JWT;
 
 use Mojo::Base -base;
 
-our $VERSION = '1.01';
+our $VERSION = '1.02';
 $VERSION = eval $VERSION;
 
 use Scalar::Util ();
@@ -72,7 +72,7 @@ sub decode {
       unless $self->verify_rsa($1, $payload, $signature);
   } elsif ($algo =~ $re_hs) {
     Carp::croak 'Failed HS validation'
-      unless $signature eq $self->sign_hmac($1, $payload);
+      unless Mojo::Util::secure_compare($signature, $self->sign_hmac($1, $payload));
   } else {
     Carp::croak 'Unsupported signing algorithm';
   }
@@ -394,6 +394,8 @@ Joel Berger, E<lt>joel.a.berger@gmail.comE<gt>
 Christopher Raa (mishanti1)
 
 Cameron Daniel (ccakes)
+
+Olaf Alders (oalders)
 
 =head1 COPYRIGHT AND LICENSE
 

@@ -1,5 +1,9 @@
 Revision history for Perl module Mojo::JWT
 
+1.02 2026-06-03
+  - This release contains fixes for security issues, everybody should upgrade!
+  - Improved security of decode to prevent timing side-channel attacks in symmetric signatures
+
 1.01 2024-10-15
   - Fix non-portable test
 
